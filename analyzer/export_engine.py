@@ -17,10 +17,12 @@ class ExportEngine:
 
     def build_payload(self) -> Dict[str, Any]:
         return {
-            'schema_version': '2.0.0',
+            'schema_version': '3.0.0',
             'generated_at': datetime.now().isoformat(),
             'meta': self.meta_info,
+            'institution_kpis': self.metrics_data.get('institution_kpis', self.metrics_data['school_kpis']),
             'school_kpis': self.metrics_data['school_kpis'],
+            'schools': self.metrics_data.get('schools', []),
             'departments': self.metrics_data['departments'],
             'faculty_directory': self.metrics_data['faculty_directory'],
             'sections_audit': self.metrics_data['sections_audit']

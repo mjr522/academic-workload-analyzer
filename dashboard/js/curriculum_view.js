@@ -8,14 +8,6 @@ function renderCurriculumView() {
     const data = window.currentWorkloadData;
     if (!data) return;
 
-    const sections = data.sections_audit || [];
-    const sub10 = sections.filter(s => s.is_sub10);
-    const capstones = sections.filter(s => s.is_capstone);
-
-    document.getElementById('curricTotalSecs').textContent = sections.length.toLocaleString();
-    document.getElementById('curricSub10Secs').textContent = `${sub10.length.toLocaleString()} (${Math.round(sub10.length / sections.length * 100 || 0)}%)`;
-    document.getElementById('curricCapstoneSecs').textContent = capstones.length.toLocaleString();
-
     filterAndRenderCurriculumTable();
 }
 
@@ -36,7 +28,30 @@ function filterAndRenderCurriculumTable() {
     tbody.innerHTML = '';
 
     const q = (document.getElementById('curricSearch') ? document.getElementById('curricSearch').value : '').toLowerCase();
-    let list = data.sections_audit || [];
+    const schoolFilter = (document.getElementById('curricSchoolFilter') ? document.getElementById('curricSchoolFilter').value : 'ALL');
+
+    let allScopeList = data.sections_audit || [];
+    if (schoolFilter !== 'ALL') {
+        allScopeList = allScopeList.filter(s => (s.school_code || 'OTHER') === schoolFilter);
+    }
+
+    // Update KPI counters for this school scope
+    const sub10Scope = allScopeList.filter(s => s.is_sub10);
+    const capstoneScope = allScopeList.filter(s => s.is_capstone);
+
+    const totalEl = document.getElementById('curricTotalSecs');
+    if (totalEl) totalEl.textContent = allScopeList.length.toLocaleString();
+
+    const sub10El = document.getElementById('curricSub10Secs');
+    if (sub10El) {
+        const pct = allScopeList.length > 0 ? Math.round(sub10Scope.length / allScopeList.length * 100) : 0;
+        sub10El.textContent = `${sub10Scope.length.toLocaleString()} (${pct}%)`;
+    }
+
+    const capstoneEl = document.getElementById('curricCapstoneSecs');
+    if (capstoneEl) capstoneEl.textContent = capstoneScope.length.toLocaleString();
+
+    let list = allScopeList;
 
     if (curriculumFilterMode === 'sub10') {
         list = list.filter(s => s.is_sub10);
@@ -46,16 +61,16 @@ function filterAndRenderCurriculumTable() {
 
     if (q) {
         list = list.filter(s =>
-            s.course_nbr.toLowerCase().includes(q) ||
-            s.title.toLowerCase().includes(q) ||
-            s.department.toLowerCase().includes(q) ||
-            s.subject.toLowerCase().includes(q) ||
-            s.section.toLowerCase().includes(q)
+            (s.course_nbr && s.course_nbr.toLowerCase().includes(q)) ||
+            (s.title && s.title.toLowerCase().includes(q)) ||
+            (s.department && s.department.toLowerCase().includes(q)) ||
+            (s.subject && s.subject.toLowerCase().includes(q)) ||
+            (s.section && s.section.toLowerCase().includes(q))
         );
     }
 
     if (list.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:#64748b; padding:16px;">No matching sections found.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; color:#64748b; padding:16px;">No matching sections found.</td></tr>';
         return;
     }
 
@@ -67,12 +82,13 @@ function filterAndRenderCurriculumTable() {
 
         tr.innerHTML = `
             <td><strong>${s.term || '2268'}</strong></td>
+            <td><span class="badge" style="background:#e2e8f0; color:#1e293b; font-weight:600;">${s.school_code || 'OTHER'}</span></td>
             <td><span class="badge badge-dept">${s.department}</span></td>
             <td><strong>${s.subject} ${s.course_nbr}</strong></td>
             <td>${s.title}</td>
             <td>${s.section}</td>
-            <td class="num"><strong>${s.cadet_count}</strong></td>
-            <td class="num">${s.credit_units}</td>
+            <td class="num"><strong>${s.cadets !== undefined ? s.cadets : (s.cadet_count !== undefined ? s.cadet_count : 0)}</strong></td>
+            <td class="num">${s.credits !== undefined ? s.credits : (s.credit_units !== undefined ? s.credit_units : 3.0)}</td>
             <td>${badges || '<span style="color:#94a3b8; font-size:11px;">Standard</span>'}</td>
         `;
         tbody.appendChild(tr);

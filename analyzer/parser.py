@@ -169,13 +169,26 @@ class SectionRecord:
 @dataclass
 class CadetRecord:
     cadet_id: str
-    class_year: str
-    major1: str
-    major2: str
-    minor1: str
-    advisor: str
-    squadron: str
-    sport: str
+    class_year: str = ''
+    major1: str = ''
+    major2: str = ''
+    minor1: str = ''
+    advisor: str = ''
+    squadron: str = ''
+    sport: str = ''
+
+
+def get_col(row: Dict[str, Any], candidates: List[str], default: str = '') -> str:
+    """Extracts column value with case-insensitive and whitespace-tolerant matching."""
+    for c in candidates:
+        if c in row and row[c] is not None and str(row[c]).strip():
+            return str(row[c]).strip()
+    row_lower = {k.strip().lower(): v for k, v in row.items() if k is not None}
+    for c in candidates:
+        cl = c.strip().lower()
+        if cl in row_lower and row_lower[cl] is not None and str(row_lower[cl]).strip():
+            return str(row_lower[cl]).strip()
+    return default
 
 
 class RegistrarParser:
@@ -196,13 +209,13 @@ class RegistrarParser:
         with open(filepath, 'r', encoding='utf-8-sig', errors='ignore') as f:
             reader = csv.DictReader(f)
             for row in reader:
-                term = row.get('Term', '').strip()
-                class_nbr = row.get('Class Nbr', '').strip()
-                subject = row.get('Subject', '').strip().upper()
-                cnum = row.get('Course Number', '').strip()
-                title = row.get('Course Title', '').strip()
-                sec = row.get('Section', '').strip()
-                cadet_id = row.get('Cadet EMPLID', '').strip()
+                term = get_col(row, ['Term', 'Semester'])
+                class_nbr = get_col(row, ['Class Nbr', 'Class Number', 'ClassNbr', 'Class #', 'CRN'])
+                subject = get_col(row, ['Subject', 'Subj', 'Dept', 'Department']).upper()
+                cnum = get_col(row, ['Course Number', 'Course Nbr', 'Course', 'Catalog Nbr', 'Catalog Number'])
+                title = get_col(row, ['Course Title', 'Title', 'Course Name', 'Descr'])
+                sec = get_col(row, ['Section', 'Sec', 'Class Section'])
+                cadet_id = get_col(row, ['Cadet EMPLID', 'EMPLID', 'Cadet ID', 'Student ID', 'ID'])
 
                 if not class_nbr:
                     continue
@@ -214,17 +227,24 @@ class RegistrarParser:
                     self.terms.append(term)
 
                 # Parse credit hours
+                credits_str = get_col(row, ['Unit Taken', 'Units', 'Credits', 'Credit Units', 'Credit Hours'], default='3.0')
                 try:
-                    credits_val = float(row.get('Unit Taken', '3.0').strip() or '3.0')
+                    credits_val = float(credits_str or '3.0')
                 except ValueError:
                     credits_val = 3.0
 
                 # Determine department mapping
                 dept = SUBJECT_TO_DEPARTMENT.get(subject, 'OTHER')
 
+                inst_candidates = [
+                    'Corrected Names', 'Corrected Name', 'Instructor Name(s)',
+                    'Instructor Name', 'Instructor Names', 'Instructor',
+                    'Instructors', 'Faculty Name', 'Faculty', 'Primary Instructor'
+                ]
+                raw_inst = get_col(row, inst_candidates)
+
                 sec_key = (term, class_nbr)
                 if sec_key not in self.sections:
-                    raw_inst = row.get('Corrected Names', '').strip() or row.get('Instructor Name(s)', '').strip()
                     instructors = parse_instructor_names(raw_inst)
                     sec_wt, cadet_wt, wt_label = determine_section_weight(subject, cnum, title, sec)
 
@@ -245,23 +265,21 @@ class RegistrarParser:
                         department=dept
                     )
                 else:
-                    if not self.sections[sec_key].instructors:
-                        raw_inst = row.get('Corrected Names', '').strip() or row.get('Instructor Name(s)', '').strip()
-                        if raw_inst:
-                            self.sections[sec_key].instructors = parse_instructor_names(raw_inst)
+                    if not self.sections[sec_key].instructors and raw_inst:
+                        self.sections[sec_key].instructors = parse_instructor_names(raw_inst)
 
                 if cadet_id:
                     self.sections[sec_key].cadet_ids.add(cadet_id)
                     if cadet_id not in self.cadets:
                         self.cadets[cadet_id] = CadetRecord(
                             cadet_id=cadet_id,
-                            class_year=row.get('Srvc Reasn', '').strip(),
-                            major1=row.get('Major 1', '').strip(),
-                            major2=row.get('Major 2', '').strip(),
-                            minor1=row.get('Minor 1', '').strip(),
-                            advisor=row.get('Advisor Name', '').strip(),
-                            squadron=row.get('Cadet Squadron', '').strip(),
-                            sport=row.get('Sport', '').strip()
+                            class_year=get_col(row, ['Srvc Reasn', 'Class Year', 'Class', 'Grad Year', 'Graduation Year']),
+                            major1=get_col(row, ['Major 1', 'Major1', 'Major']),
+                            major2=get_col(row, ['Major 2', 'Major2']),
+                            minor1=get_col(row, ['Minor 1', 'Minor1', 'Minor']),
+                            advisor=get_col(row, ['Advisor Name', 'Advisor', 'Advisor Name(s)', 'Faculty Advisor']),
+                            squadron=get_col(row, ['Cadet Squadron', 'Squadron', 'Sqdn']),
+                            sport=get_col(row, ['Sport', 'Athletic Sport', 'Team'])
                         )
 
         self.terms.sort()

@@ -1,125 +1,189 @@
 /**
- * Academic Workload & Resourcing Dashboard - Main Application Controller
- * Handles local JSON file loading, tab routing, state management, and privacy masking.
+ * Academic Workload & Resourcing Dashboard
+ * Application State & Tab Controller
  */
 
-window.currentWorkloadData = null;
-window.maskFacultyNames = false;
 let currentActiveTab = 'tab-executive';
+let currentSchoolScope = 'ALL';
 
 document.addEventListener('DOMContentLoaded', () => {
     initApp();
 });
 
 function initApp() {
-    setupFilePicker();
-    setupPrivacyToggle();
+    // 1. Setup file drop zone
+    setupFileDropZone();
 
-    // Try loading default workload_data.json if present
-    fetch('./data/workload_data.json')
+    // 2. Setup JSON file input handler
+    const fileInput = document.getElementById('jsonFileInput');
+    if (fileInput) {
+        fileInput.addEventListener('change', handleFileSelect);
+    }
+
+    // 3. Attempt to auto-fetch pre-baked workload_data.json
+    tryAutoLoadData();
+}
+
+function tryAutoLoadData() {
+    fetch('data/workload_data.json')
         .then(response => {
-            if (response.ok) return response.json();
-            throw new Error('Default JSON not found');
+            if (!response.ok) throw new Error(`HTTP error ${response.status}`);
+            return response.json();
         })
         .then(data => {
             loadDataset(data);
         })
-        .catch(() => {
-            console.log("No default workload_data.json loaded. Waiting for user upload.");
+        .catch(err => {
+            console.log("No auto-load data found or failed to fetch:", err.message);
         });
 }
 
-function setupFilePicker() {
-    const fileInput = document.getElementById('jsonFileInput');
-    if (!fileInput) return;
+function setupFileDropZone() {
+    const dropZone = document.getElementById('dropZone');
+    if (!dropZone) return;
 
-    fileInput.addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            let parsed = null;
-            try {
-                parsed = JSON.parse(event.target.result);
-            } catch (err) {
-                console.error("JSON Syntax Error:", err);
-                alert("Error: File is not valid JSON syntax.");
-                return;
-            }
-
-            try {
-                loadDataset(parsed);
-                // Notification banner
-                const banner = document.getElementById('dataLoadedBadge');
-                if (banner) {
-                    banner.style.display = 'inline-flex';
-                    banner.textContent = `✓ Loaded: ${file.name} (${parsed.school_kpis ? parsed.school_kpis.total_sections.toLocaleString() : 0} Secs)`;
-                }
-            } catch (err) {
-                console.error("Error initializing dashboard with dataset:", err);
-                alert(`Error rendering dataset: ${err.message}`);
-            }
-        };
-        reader.readAsText(file);
+    ['dragenter', 'dragover'].forEach(eventName => {
+        dropZone.addEventListener(eventName, (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dropZone.classList.add('dragover');
+        }, false);
     });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dropZone.classList.remove('dragover');
+        }, false);
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        if (files.length > 0) {
+            processJsonFile(files[0]);
+        }
+    }, false);
 }
 
-function setupPrivacyToggle() {
-    const btn = document.getElementById('privacyToggleBtn');
-    if (!btn) return;
+function handleFileSelect(e) {
+    const files = e.target.files;
+    if (files.length > 0) {
+        processJsonFile(files[0]);
+    }
+}
 
-    btn.addEventListener('click', () => {
-        window.maskFacultyNames = !window.maskFacultyNames;
-        if (window.maskFacultyNames) {
-            btn.classList.add('active');
-            btn.textContent = '🔒 Names Masked (Public View)';
-        } else {
-            btn.classList.remove('active');
-            btn.textContent = '👁️ Names Visible (Internal View)';
+function processJsonFile(file) {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+        try {
+            const data = JSON.parse(event.target.result);
+            if (!data.school_kpis && !data.institution_kpis) {
+                alert("Error parsing JSON file. Please ensure it is a valid workload_data.json export.");
+                return;
+            }
+            loadDataset(data);
+        } catch (err) {
+            alert(`Error reading JSON file: ${err.message}`);
         }
-
-        // Refresh faculty views
-        if (window.currentWorkloadData) {
-            renderDepartmentFacultyTable(document.getElementById('deptSelect').value);
-            renderFacultyDirectory();
-            renderWhatIfFacultyTable();
-        }
-    });
+    };
+    reader.readAsText(file);
 }
 
 function loadDataset(data) {
     window.currentWorkloadData = data;
 
-    // Update KPIs
-    updateExecutiveKPIs(data);
+    // Determine active school scope from selector
+    const scopeSelect = document.getElementById('schoolScopeSelect');
+    if (scopeSelect) {
+        currentSchoolScope = scopeSelect.value || 'ALL';
+    }
 
-    // Render Charts
-    renderQuadrantChart(data.departments, data.school_kpis.overall_avg_stu_per_inst);
-    renderRankingChart(data.departments, data.school_kpis.overall_avg_sec_per_inst);
+    // Update Executive KPIs & Dean Badge
+    updateExecutiveKPIs(data, currentSchoolScope);
+    updateSchoolDeanBadge(data, currentSchoolScope);
 
-    // Initialize views
+    // Render Executive Charts
+    renderExecutiveCharts(data, currentSchoolScope);
+
+    // Initialize View Controllers
     initDepartmentDropdown(data.departments);
     renderCurriculumView();
     renderFacultyDirectory();
     initWhatIfSandbox();
 
-    // Show data loaded notification
+    // Show data loaded banner
     const banner = document.getElementById('dataLoadedBadge');
     if (banner) {
+        const kpis = data.institution_kpis || data.school_kpis;
+        const termStr = (data.meta && data.meta.terms) ? data.meta.terms.join(', ') : 'Active';
         banner.style.display = 'inline-flex';
-        banner.textContent = `Data Loaded: ${data.school_kpis.total_sections.toLocaleString()} Sections (${data.meta.terms.join(', ') || 'Term 2268'})`;
+        banner.textContent = `Data Loaded: ${(kpis.total_sections || 0).toLocaleString()} Sections (${termStr})`;
     }
 }
 
-function updateExecutiveKPIs(data) {
-    const kpis = data.school_kpis;
-    document.getElementById('kpiTotalCadets').textContent = kpis.total_cadet_seats.toLocaleString();
-    document.getElementById('kpiFacultyCount').textContent = kpis.unique_faculty_count;
-    document.getElementById('kpiTotalSections').textContent = kpis.total_sections.toLocaleString();
-    document.getElementById('kpiTotalSCH').textContent = Math.round(kpis.total_sch).toLocaleString();
-    document.getElementById('kpiAvgSecSize').textContent = kpis.overall_avg_section_size;
-    document.getElementById('kpiSub10Secs').textContent = `${kpis.overall_sub10_count} (${kpis.overall_sub10_pct}%)`;
+function changeSchoolScope(scope) {
+    currentSchoolScope = scope;
+    if (!window.currentWorkloadData) return;
+
+    updateExecutiveKPIs(window.currentWorkloadData, currentSchoolScope);
+    updateSchoolDeanBadge(window.currentWorkloadData, currentSchoolScope);
+    renderExecutiveCharts(window.currentWorkloadData, currentSchoolScope);
+}
+
+function updateSchoolDeanBadge(data, scope) {
+    const badge = document.getElementById('schoolDeanBadge');
+    if (!badge || !data) return;
+
+    const schools = data.schools || [];
+    if (scope === 'ALL') {
+        const numActiveDepts = (data.departments || []).filter(d => d.total_sections > 0).length;
+        badge.innerHTML = `USAFA Academic Division (${schools.length || 3} Schools | ${numActiveDepts} Active Departments)`;
+    } else {
+        const s = schools.find(item => item.school_code === scope);
+        if (s) {
+            badge.innerHTML = `<strong>${s.dean}</strong> | ${s.departments_count} Departments | ${s.faculty_count} Faculty`;
+        } else {
+            badge.innerHTML = `School Scope: ${scope}`;
+        }
+    }
+}
+
+function updateExecutiveKPIs(data, scope) {
+    if (!data) return;
+
+    let kpis;
+    if (scope === 'ALL') {
+        kpis = data.institution_kpis || data.school_kpis;
+    } else {
+        const s = (data.schools || []).find(item => item.school_code === scope);
+        if (s) {
+            kpis = {
+                total_cadet_seats: s.total_cadet_seats,
+                unique_faculty_count: s.faculty_count,
+                total_sections: s.total_sections,
+                total_sch: s.total_sch,
+                overall_avg_section_size: s.overall_avg_section_size,
+                overall_sub10_count: s.sub10_sections_count,
+                overall_sub10_pct: s.sub10_percentage
+            };
+        } else {
+            kpis = data.institution_kpis || data.school_kpis;
+        }
+    }
+
+    const setVal = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = (val !== null && val !== undefined) ? val : '-';
+    };
+
+    setVal('kpiTotalCadets', (kpis.total_cadet_seats || 0).toLocaleString());
+    setVal('kpiFacultyCount', kpis.unique_faculty_count !== undefined ? kpis.unique_faculty_count : (kpis.faculty_count || 0));
+    setVal('kpiTotalSections', (kpis.total_sections || 0).toLocaleString());
+    setVal('kpiTotalSCH', Math.round(kpis.total_sch || 0).toLocaleString());
+    setVal('kpiAvgSecSize', kpis.overall_avg_section_size || 0);
+    setVal('kpiSub10Secs', `${(kpis.overall_sub10_count || 0).toLocaleString()} (${kpis.overall_sub10_pct || 0}%)`);
 }
 
 function switchTab(tabId) {
@@ -138,11 +202,15 @@ function switchTab(tabId) {
 
     // Tab-specific refreshes
     if (tabId === 'tab-executive' && window.currentWorkloadData) {
-        renderQuadrantChart(window.currentWorkloadData.departments, window.currentWorkloadData.school_kpis.overall_avg_stu_per_inst);
-        renderRankingChart(window.currentWorkloadData.departments, window.currentWorkloadData.school_kpis.overall_avg_sec_per_inst);
+        renderExecutiveCharts(window.currentWorkloadData, currentSchoolScope);
+    } else if (tabId === 'tab-department' && window.currentWorkloadData) {
+        const sel = document.getElementById('deptSelect');
+        if (sel && sel.value) renderDepartmentDetails(sel.value);
     } else if (tabId === 'tab-curriculum') {
         renderCurriculumView();
     } else if (tabId === 'tab-faculty') {
         renderFacultyDirectory();
+    } else if (tabId === 'tab-whatif') {
+        renderWhatIfFacultyTable();
     }
-}
+}\n

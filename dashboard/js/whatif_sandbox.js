@@ -107,9 +107,12 @@ function applyWhatIfRecalculation() {
     updateExecutiveKPIs(scenarioModifiedData);
     renderQuadrantChart(scenarioModifiedData.departments, scenarioModifiedData.school_kpis.overall_avg_stu_per_inst);
     renderRankingChart(scenarioModifiedData.departments, scenarioModifiedData.school_kpis.overall_avg_sec_per_inst);
+    renderFacultyPieChart(scenarioModifiedData.departments);
+    renderMajorsPieChart(scenarioModifiedData.departments);
+    renderSub10BarChart(scenarioModifiedData.departments);
     initDepartmentDropdown(scenarioModifiedData.departments);
 
-    alert("What-If scenario applied! The 2x2 Matrix, Department Drilldowns, and KPI cards have been updated live.");
+    alert("What-If scenario applied! The Executive Overview, Department Drilldowns, and KPI cards have been updated live.");
 }
 
 function exportScenarioJSON() {

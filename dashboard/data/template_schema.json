@@ -21,9 +21,9 @@
   },
   "departments": [
     {
-      "dept_code": "DFEM",
+      "dept_code": "ESME",
       "dept_name": "Mechanical Engineering",
-      "division": "Engineering",
+      "division": "School of Integrated Engineering",
       "subjects_included": ["MECHENGR", "SYSENGR"],
       "faculty_count": 18,
       "total_sections": 54,
@@ -61,9 +61,9 @@
       }
     },
     {
-      "dept_code": "DFCS",
+      "dept_code": "ESCS",
       "dept_name": "Computer Science",
-      "division": "Engineering",
+      "division": "School of Integrated Engineering",
       "subjects_included": ["COMPSCI", "CYBERSCI"],
       "faculty_count": 16,
       "total_sections": 65,
@@ -101,9 +101,9 @@
       }
     },
     {
-      "dept_code": "DFAN",
+      "dept_code": "ESAN",
       "dept_name": "Aeronautics",
-      "division": "Engineering",
+      "division": "School of Integrated Engineering",
       "subjects_included": ["AEROENGR"],
       "faculty_count": 22,
       "total_sections": 71,
@@ -140,9 +140,9 @@
       }
     },
     {
-      "dept_code": "DFEC",
+      "dept_code": "ESEC",
       "dept_name": "Electrical & Computer Engineering",
-      "division": "Engineering",
+      "division": "School of Integrated Engineering",
       "subjects_included": ["ECE"],
       "faculty_count": 14,
       "total_sections": 44,
@@ -179,9 +179,9 @@
       }
     },
     {
-      "dept_code": "DFCE",
+      "dept_code": "ESCE",
       "dept_name": "Civil & Environmental Engineering",
-      "division": "Engineering",
+      "division": "School of Integrated Engineering",
       "subjects_included": ["CIVENGR"],
       "faculty_count": 12,
       "total_sections": 32,
@@ -218,9 +218,9 @@
       }
     },
     {
-      "dept_code": "DFAS",
+      "dept_code": "ESAS",
       "dept_name": "Astronautics",
-      "division": "Engineering",
+      "division": "School of Integrated Engineering",
       "subjects_included": ["ASTRENGR"],
       "faculty_count": 10,
       "total_sections": 28,

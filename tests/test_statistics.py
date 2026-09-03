@@ -92,12 +92,12 @@ def test_split_attribution():
     assert fac_map['Doe, Jane B']['weighted_sections'] == 1.5
     assert fac_map['Doe, Jane B']['cadet_load_allocated'] == 25.0
 
-    dfem = next(d for d in results['departments'] if d['dept_code'] == 'DFEM')
-    assert dfem['total_sections'] == 3
-    assert dfem['total_cadet_seats'] == 60
-    assert dfem['faculty_count'] == 2
-    assert dfem['total_sch'] == 180.0
-    assert dfem['sub10_sections_count'] == 1  # Section 1003 has 10 cadets
+    esme = next(d for d in results['departments'] if d['dept_code'] == 'ESME')
+    assert esme['total_sections'] == 3
+    assert esme['total_cadet_seats'] == 60
+    assert esme['faculty_count'] == 2
+    assert esme['total_sch'] == 180.0
+    assert esme['sub10_sections_count'] == 1  # Section 1003 has 10 cadets
 
     os.remove(tmp_path)
     print("End-to-End Mathematical & Department Attribution Verification PASSED!")

@@ -42,6 +42,10 @@ def main():
         help="Disable generation of starter roster CSVs"
     )
     parser.add_argument(
+        "--roster", "--acad-org", "-m", nargs="*", default=[],
+        help="Path to one or more official department roster or Acad Org CSV files to map faculty & billets"
+    )
+    parser.add_argument(
         "--quiet", "-q", action="store_true",
         help="Suppress terminal summary output"
     )
@@ -73,8 +77,16 @@ def main():
     print(f"Total Unique Sections Ingested: {len(sections_list):,}")
     print(f"Total Unique Cadets Ingested:   {len(reg_parser.cadets):,}")
 
+    # Load Official Department Rosters if provided
+    roster_mgr = None
+    if args.roster:
+        from analyzer.roster_manager import RosterManager
+        roster_mgr = RosterManager()
+        n_loaded = roster_mgr.load_roster_files(args.roster)
+        print(f"[OK] Ingested {n_loaded} faculty entries from official roster / Acad Org file(s)")
+
     # Compute Metrics
-    engine = MetricsEngine(sections_list, reg_parser.cadets)
+    engine = MetricsEngine(sections_list, reg_parser.cadets, roster_manager=roster_mgr)
     results = engine.compute_all_metrics()
 
     # Export JSON Contract
@@ -97,28 +109,40 @@ def main():
         for dcode, rpath in sorted(roster_files.items()):
             print(f"     * {dcode}: {os.path.basename(rpath)}")
 
-    # Print Executive Summary
+    # Print Multi-School Executive Summary
     if not args.quiet:
-        kpis = results['school_kpis']
-        print("\n" + "=" * 90)
-        print(" " * 22 + "SCHOOL OF INTEGRATED ENGINEERING - WORKLOAD SUMMARY")
-        print("=" * 90)
-        print(f"Active Sections:       {kpis['total_sections']:,} | Total Cadet Seats: {kpis['total_cadet_seats']:,} | SCH: {kpis['total_sch']:,}")
-        print(f"Deduplicated Faculty:  {kpis['unique_faculty_count']} instructors | Average Class Size: {kpis['overall_avg_section_size']} cadets")
-        print(f"Sub-10 Cadet Sections: {kpis['overall_sub10_count']} sections ({kpis['overall_sub10_pct']}%)")
-        print("-" * 90)
-        hfmt = "{:<8} {:<32} {:>5} {:>5} {:>7} {:>7} {:>6} {:>6} {:>7}"
-        rfmt = "{:<8} {:<32} {:>5} {:>5} {:>7.0f} {:>7} {:>6.1f} {:>6.1f} {:>7.1f}%"
-        print(hfmt.format("Dept", "Department Name", "Fac", "Secs", "Seats", "SCH", "Sec/In", "Stu/In", "Sub10%"))
-        print("-" * 90)
+        ikpis = results.get('institution_kpis', results['school_kpis'])
+        print("\n" + "=" * 95)
+        print(" " * 24 + "USAFA ACADEMIC DIVISION - WORKLOAD SUMMARY")
+        print("=" * 95)
+        print(f"Active Sections:       {ikpis['total_sections']:,} | Total Cadet Seats: {ikpis['total_cadet_seats']:,} | Total SCH: {ikpis['total_sch']:,}")
+        print(f"Deduplicated Faculty:  {ikpis['unique_faculty_count']} instructors | Average Class Size: {ikpis['overall_avg_section_size']} cadets")
+        print(f"Sub-10 Cadet Sections: {ikpis['overall_sub10_count']:,} sections ({ikpis['overall_sub10_pct']}%)")
+        print("-" * 95)
+        print("SUMMARY BY SCHOOL:")
+        sfmt = "{:<8} {:<42} {:>5} {:>5} {:>6} {:>7} {:>7} {:>7}"
+        print(sfmt.format("School", "Dean / Leadership", "Depts", "Fac", "Secs", "Seats", "SCH", "Sub10%"))
+        print("-" * 95)
+        for s in results.get('schools', []):
+            print(sfmt.format(
+                s['school_code'], s['dean'][:42], s['departments_count'],
+                s['faculty_count'], s['total_sections'], s['total_cadet_seats'],
+                int(s['total_sch']), f"{s['sub10_percentage']}%"
+            ))
+        print("-" * 95)
+        print("DEPARTMENT BREAKDOWN:")
+        hfmt = "{:<8} {:<8} {:<32} {:>4} {:>5} {:>6} {:>7} {:>6} {:>6} {:>7}"
+        rfmt = "{:<8} {:<8} {:<32} {:>4} {:>5} {:>6.0f} {:>7} {:>6.1f} {:>6.1f} {:>7.1f}%"
+        print(hfmt.format("School", "Dept", "Department Name", "Fac", "Secs", "Seats", "SCH", "Sec/In", "Stu/In", "Sub10%"))
+        print("-" * 95)
         for d in results['departments']:
             if d['total_sections'] > 0:
                 print(rfmt.format(
-                    d['dept_code'], d['dept_name'][:32], d['faculty_count'], d['total_sections'],
-                    d['total_cadet_seats'], int(d['total_sch']),
+                    d.get('school_code', 'OTHER'), d['dept_code'], d['dept_name'][:32],
+                    d['faculty_count'], d['total_sections'], d['total_cadet_seats'], int(d['total_sch']),
                     d['sections_per_inst_mean'], d['students_per_inst_mean'], d['sub10_percentage']
                 ))
-        print("=" * 90 + "\n")
+        print("=" * 95 + "\n")
 
 
 if __name__ == "__main__":

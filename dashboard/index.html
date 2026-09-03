@@ -62,7 +62,7 @@
 
         <!-- Tab Navigation Bar -->
         <nav class="nav-tabs-bar">
-            <button class="nav-tab-btn active" id="btn-tab-executive" onclick="switchTab('tab-executive')">📊 Executive 2×2 Matrix</button>
+            <button class="nav-tab-btn active" id="btn-tab-executive" onclick="switchTab('tab-executive')">📊 Executive Overview</button>
             <button class="nav-tab-btn" id="btn-tab-department" onclick="switchTab('tab-department')">🏢 Department Drilldown</button>
             <button class="nav-tab-btn" id="btn-tab-curriculum" onclick="switchTab('tab-curriculum')">📚 Curriculum & Capstones</button>
             <button class="nav-tab-btn" id="btn-tab-faculty" onclick="switchTab('tab-faculty')">👥 Faculty Directory</button>
@@ -70,19 +70,36 @@
         </nav>
 
         <!-- ================================================================= -->
-        <!-- TAB 1: EXECUTIVE 2x2 MATRIX PANE -->
+        <!-- TAB 1: EXECUTIVE OVERVIEW PANE -->
         <!-- ================================================================= -->
         <div id="tab-executive" class="tab-pane">
+            <!-- School Scope Selector Bar -->
+            <div class="card" style="margin-bottom: 20px; padding: 14px 20px; display: flex; justify-content: space-between; align-items: center; background: #fff; border-left: 5px solid var(--primary); flex-wrap: wrap; gap: 12px;">
+                <div style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap;">
+                    <label for="schoolScopeSelect" style="font-weight: 700; font-size: 13.5px; color: var(--text-main); text-transform: uppercase;">Academic School Scope:</label>
+                    <select id="schoolScopeSelect" onchange="changeSchoolScope(this.value)" style="padding: 8px 16px; font-size: 14px; font-weight: 600; border-radius: 6px; border: 1px solid var(--border); background: #f8fafc; color: var(--text-main); cursor: pointer;">
+                        <option value="ALL" selected>🏛️ All Schools — USAFA Academic Division</option>
+                        <option value="SINE">⚙️ SINE — School of Integrated Engineering Sciences</option>
+                        <option value="SIBS">🔬 SIBS — School of Integrated Basic Sciences</option>
+                        <option value="HASS">📚 HASS — School of Integrated Humanities, Arts, & Social Sciences</option>
+                    </select>
+                </div>
+                <div id="schoolDeanBadge" style="font-size: 13px; color: var(--text-muted); font-weight: 600;">
+                    USAFA Academic Division (3 Schools | 21 Departments)
+                </div>
+            </div>
+
+            <!-- Row 1: Quadrant Matrix & SCH Ranking -->
             <div class="grid-2">
                 <!-- 2x2 Resourcing Quadrant Matrix -->
                 <div class="card">
                     <div class="card-header">
                         <div>
-                            <div class="card-title">Department Resourcing Matrix (2×2 Quadrant)</div>
-                            <div class="card-desc">X: Course Prep Load (Weighted Sections/Inst) | Y: Student Contact Load (Cadets/Inst) | Bubble Size: Total Cadet Volume</div>
+                            <div class="card-title" id="titleQuadrant">Department Resourcing Matrix (2×2 Quadrant)</div>
+                            <div class="card-desc" id="descQuadrant">X: Course Prep Load (Weighted Sections/Inst) | Y: Student Contact Load (Cadets/Inst) | Bubble Size: Total Cadet Volume</div>
                         </div>
                     </div>
-                    <div style="height: 380px; position: relative;">
+                    <div style="height: 360px; position: relative;">
                         <canvas id="quadrantChart"></canvas>
                     </div>
                 </div>
@@ -91,12 +108,54 @@
                 <div class="card">
                     <div class="card-header">
                         <div>
-                            <div class="card-title">Student Credit Hours by Department</div>
-                            <div class="card-desc">Total SCH delivered across engineering and computing disciplines</div>
+                            <div class="card-title" id="titleRanking">Student Credit Hours Delivered by Department</div>
+                            <div class="card-desc" id="descRanking">Total student credit volume generated across academic departments</div>
                         </div>
                     </div>
-                    <div style="height: 380px; position: relative;">
+                    <div style="height: 360px; position: relative;">
                         <canvas id="rankingChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Row 2: School-Level Distributions (Faculty Pie, Majors Pie, Sub-10 Sections Bar) -->
+            <div class="grid-3">
+                <!-- Faculty Distribution Donut/Pie -->
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <div class="card-title" id="titleFacultyPie">Faculty Distribution</div>
+                            <div class="card-desc" id="descFacultyPie">Share of instructional faculty lines</div>
+                        </div>
+                    </div>
+                    <div style="height: 280px; position: relative;">
+                        <canvas id="facultyPieChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Declared Majors Distribution Donut/Pie -->
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <div class="card-title" id="titleMajorsPie">Declared Majors Distribution</div>
+                            <div class="card-desc" id="descMajorsPie">Cadet enrollment across declared academic majors</div>
+                        </div>
+                    </div>
+                    <div style="height: 280px; position: relative;">
+                        <canvas id="majorsPieChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Sub-10 Cadet Sections Bar -->
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <div class="card-title" id="titleSub10">Sections with ≤ 10 Cadets</div>
+                            <div class="card-desc" id="descSub10">Small section proliferation and elective fragmentation</div>
+                        </div>
+                    </div>
+                    <div style="height: 280px; position: relative;">
+                        <canvas id="sub10BarChart"></canvas>
                     </div>
                 </div>
             </div>
@@ -107,7 +166,7 @@
         <!-- ================================================================= -->
         <div id="tab-department" class="tab-pane" style="display: none;">
             <div class="dept-select-bar">
-                <label for="deptSelect">Select Engineering Department:</label>
+                <label for="deptSelect">Select Academic Department:</label>
                 <select id="deptSelect"></select>
                 <span id="deptSubjs" style="font-size: 12px; color: var(--text-muted); margin-left: 10px;"></span>
             </div>
@@ -160,34 +219,100 @@
                     <div id="deptMajorsList" style="display: flex; gap: 8px; flex-wrap: wrap;"></div>
                 </div>
 
-                <!-- Grid with Pipeline Chart & Advising Stats -->
-                <div class="grid-2">
-                    <div>
+                <!-- Grid with Pipeline Chart & Section Size Distribution -->
+                <div class="grid-2" style="margin-bottom: 20px;">
+                    <div style="background:#f8fafc; border:1px solid var(--border); padding:16px; border-radius:8px;">
                         <div style="font-size: 13px; font-weight: 700; margin-bottom: 8px;">Cadet Major Pipeline by Class Year:</div>
                         <div style="height: 260px; position: relative;">
                             <canvas id="pipelineChart"></canvas>
                         </div>
                     </div>
-                    <div>
-                        <div style="font-size: 13px; font-weight: 700; margin-bottom: 8px;">Advising & Course Level Footprint:</div>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px;">
-                            <div style="background:#f8fafc; border:1px solid var(--border); padding:10px 14px; border-radius:6px;">
-                                <div style="font-size:11px; font-weight:700; color:var(--text-muted);">TOTAL ADVISEES</div>
-                                <div id="deptAdvTotal" style="font-size:20px; font-weight:700; color:var(--primary);">-</div>
+                    <div style="background:#f8fafc; border:1px solid var(--border); padding:16px; border-radius:8px;">
+                        <div style="font-size: 13px; font-weight: 700; margin-bottom: 8px;">Section Size Distribution (Cadets/Section):</div>
+                        <div style="height: 260px; position: relative;">
+                            <canvas id="deptSizeDistChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3-Column Auxiliary Vitals: Billet Status, Advising/Levels, Non-Teaching Workload -->
+                <div class="grid-3" style="margin-bottom: 20px;">
+                    <!-- Card 1: Billet Status & Staffing Health -->
+                    <div style="background:#f8fafc; border:1px solid var(--border); padding:14px; border-radius:8px;">
+                        <div style="font-size: 12px; font-weight: 700; color: var(--primary); text-transform: uppercase; margin-bottom: 10px;">Billet Status & Staffing Health</div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 12px;">
+                            <div style="background:#fff; border:1px solid var(--border); padding:8px 10px; border-radius:6px;">
+                                <div style="font-size:10.5px; color:var(--text-muted); font-weight:700;">AUTHORIZED BILLETS</div>
+                                <div id="deptBilletAuth" style="font-size:18px; font-weight:700; color:var(--primary);">-</div>
                             </div>
-                            <div style="background:#f8fafc; border:1px solid var(--border); padding:10px 14px; border-radius:6px;">
-                                <div style="font-size:11px; font-weight:700; color:var(--text-muted);">ACTIVE ADVISORS</div>
-                                <div id="deptAdvActive" style="font-size:20px; font-weight:700; color:var(--primary);">-</div>
+                            <div style="background:#fff; border:1px solid var(--border); padding:8px 10px; border-radius:6px;">
+                                <div style="font-size:10.5px; color:var(--text-muted); font-weight:700;">VACANT BILLETS</div>
+                                <div id="deptBilletVac" style="font-size:18px; font-weight:700; color:var(--amber);">-</div>
+                            </div>
+                            <div style="background:#fff; border:1px solid var(--border); padding:8px 10px; border-radius:6px;">
+                                <div style="font-size:10.5px; color:var(--text-muted); font-weight:700;">FILLED (MILITARY)</div>
+                                <div id="deptBilletMil" style="font-size:16px; font-weight:700; color:var(--text-main);">-</div>
+                            </div>
+                            <div style="background:#fff; border:1px solid var(--border); padding:8px 10px; border-radius:6px;">
+                                <div style="font-size:10.5px; color:var(--text-muted); font-weight:700;">FILLED (CIVILIAN)</div>
+                                <div id="deptBilletCiv" style="font-size:16px; font-weight:700; color:var(--text-main);">-</div>
                             </div>
                         </div>
+                        <div style="margin-top:8px; font-size:11px; color:var(--text-muted);">
+                            MOA / Courtesy Adjuncts: <strong id="deptBilletMoa" style="color:var(--text-main);">-</strong>
+                        </div>
+                    </div>
 
-                        <div style="background:#f8fafc; border:1px solid var(--border); padding:12px; border-radius:6px;">
-                            <div style="font-size:11.5px; font-weight:700; color:var(--text-muted); margin-bottom:6px;">COURSE LEVEL ENROLLMENT STRATIFICATION:</div>
-                            <div style="display:flex; justify-content:space-between; font-size:12px;">
-                                <span>100-Level Core: <strong id="deptLvl100">-</strong></span>
-                                <span>200-Level Core: <strong id="deptLvl200">-</strong></span>
-                                <span>300-Level Depth: <strong id="deptLvl300">-</strong></span>
-                                <span>400-Level Capstone: <strong id="deptLvl400">-</strong></span>
+                    <!-- Card 2: Advising & Course Levels -->
+                    <div style="background:#f8fafc; border:1px solid var(--border); padding:14px; border-radius:8px;">
+                        <div style="font-size: 12px; font-weight: 700; color: var(--primary); text-transform: uppercase; margin-bottom: 10px;">Advising & Course Levels</div>
+                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 10px;">
+                            <div style="background:#fff; border:1px solid var(--border); padding:6px 8px; border-radius:6px; text-align:center;">
+                                <div style="font-size:10px; font-weight:700; color:var(--text-muted);">ADVISEES</div>
+                                <div id="deptAdvTotal" style="font-size:16px; font-weight:700; color:var(--primary);">-</div>
+                            </div>
+                            <div style="background:#fff; border:1px solid var(--border); padding:6px 8px; border-radius:6px; text-align:center;">
+                                <div style="font-size:10px; font-weight:700; color:var(--text-muted);">ADVISORS</div>
+                                <div id="deptAdvActive" style="font-size:16px; font-weight:700; color:var(--primary);">-</div>
+                            </div>
+                            <div style="background:#fff; border:1px solid var(--border); padding:6px 8px; border-radius:6px; text-align:center;">
+                                <div style="font-size:10px; font-weight:700; color:var(--text-muted);">AVG/ADV</div>
+                                <div id="deptAdvAvg" style="font-size:16px; font-weight:700; color:var(--primary);">-</div>
+                            </div>
+                        </div>
+                        <div style="background:#fff; border:1px solid var(--border); padding:8px 10px; border-radius:6px; font-size:11.5px;">
+                            <div style="font-size:10.5px; font-weight:700; color:var(--text-muted); margin-bottom:4px;">SEATS BY COURSE LEVEL:</div>
+                            <div style="display:flex; justify-content:space-between;">
+                                <span>100: <strong id="deptLvl100">-</strong></span>
+                                <span>200: <strong id="deptLvl200">-</strong></span>
+                                <span>300: <strong id="deptLvl300">-</strong></span>
+                                <span>400: <strong id="deptLvl400">-</strong></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Card 3: Non-Teaching Workload Placeholders -->
+                    <div style="background:#f8fafc; border:1px solid var(--border); padding:14px; border-radius:8px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 10px;">
+                            <span style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Non-Teaching Workload</span>
+                            <span class="badge" style="background:#e0f2fe; color:#0369a1; font-size:10px;">Future Scope</span>
+                        </div>
+                        <div style="display:flex; flex-direction:column; gap:6px; font-size:11.5px;">
+                            <div style="background:#fff; border:1px solid var(--border); padding:6px 10px; border-radius:6px; display:flex; justify-content:space-between; align-items:center;">
+                                <span>Admin / Governance FTE:</span>
+                                <span class="badge" style="background:#f1f5f9; color:#64748b; font-size:10.5px;">Pending Criteria</span>
+                            </div>
+                            <div style="background:#fff; border:1px solid var(--border); padding:6px 10px; border-radius:6px; display:flex; justify-content:space-between; align-items:center;">
+                                <span>Sponsored Research FTE:</span>
+                                <span class="badge" style="background:#f1f5f9; color:#64748b; font-size:10.5px;">Pending Criteria</span>
+                            </div>
+                            <div style="background:#fff; border:1px solid var(--border); padding:6px 10px; border-radius:6px; display:flex; justify-content:space-between; align-items:center;">
+                                <span>Lab Ops / Hazard Rating:</span>
+                                <span class="badge" style="background:#f1f5f9; color:#64748b; font-size:10.5px;">Pending Criteria</span>
+                            </div>
+                            <div style="background:#fff; border:1px solid var(--border); padding:6px 10px; border-radius:6px; display:flex; justify-content:space-between; align-items:center;">
+                                <span>Institutional Service FTE:</span>
+                                <span class="badge" style="background:#f1f5f9; color:#64748b; font-size:10.5px;">Pending Criteria</span>
                             </div>
                         </div>
                     </div>
@@ -228,11 +353,17 @@
                         <div class="card-title">Curriculum Health & Section Distribution Audit</div>
                         <div class="card-desc">Audit course section sizes, small section proliferation, and multi-section senior design capstones</div>
                     </div>
-                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
                         <button class="btn btn-primary curric-filter-btn" id="btn-curric-all" onclick="setCurriculumFilter('all')">All Sections</button>
                         <button class="btn curric-filter-btn" id="btn-curric-sub10" onclick="setCurriculumFilter('sub10')">Sections ≤ 10 Cadets</button>
                         <button class="btn curric-filter-btn" id="btn-curric-capstone" onclick="setCurriculumFilter('capstone')">Senior Capstones</button>
-                        <input type="text" id="curricSearch" placeholder="Filter by course or title..." onkeyup="filterAndRenderCurriculumTable()" style="padding:6px 12px; font-size:12px; border:1px solid var(--border); border-radius:6px;">
+                        <select id="curricSchoolFilter" onchange="filterAndRenderCurriculumTable()" style="padding:6px 10px; font-size:12px; border:1px solid var(--border); border-radius:6px; background:#fff; font-weight:600; cursor:pointer;">
+                            <option value="ALL">All Schools</option>
+                            <option value="SINE">SINE (Engineering)</option>
+                            <option value="SIBS">SIBS (Basic Sciences)</option>
+                            <option value="HASS">HASS (Humanities & Social Sci)</option>
+                        </select>
+                        <input type="text" id="curricSearch" placeholder="Filter by course, dept, title..." onkeyup="filterAndRenderCurriculumTable()" style="padding:6px 12px; font-size:12px; border:1px solid var(--border); border-radius:6px;">
                     </div>
                 </div>
 
@@ -256,6 +387,7 @@
                         <thead>
                             <tr>
                                 <th>Term</th>
+                                <th>School</th>
                                 <th>Dept</th>
                                 <th>Course Number</th>
                                 <th>Course Title</th>
@@ -278,22 +410,33 @@
             <div class="card">
                 <div class="card-header">
                     <div>
-                        <div class="card-title">School Faculty Workload Directory</div>
-                        <div class="card-desc">Complete roster of instructors across the School of Integrated Engineering</div>
+                        <div class="card-title">Academic Faculty Workload Directory</div>
+                        <div class="card-desc">Complete roster of instructors across USAFA Academic Schools</div>
                     </div>
-                    <input type="text" id="facultySearch" placeholder="Filter faculty, department, or course..." onkeyup="renderFacultyDirectory()" style="padding:6px 12px; font-size:12px; border:1px solid var(--border); border-radius:6px; width:280px;">
+                    <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                        <select id="facultySchoolFilter" onchange="renderFacultyDirectory()" style="padding:6px 10px; font-size:12px; border:1px solid var(--border); border-radius:6px; background:#fff; font-weight:600; cursor:pointer;">
+                            <option value="ALL">All Schools</option>
+                            <option value="SINE">SINE (Engineering)</option>
+                            <option value="SIBS">SIBS (Basic Sciences)</option>
+                            <option value="HASS">HASS (Humanities & Social Sci)</option>
+                        </select>
+                        <input type="text" id="facultySearch" placeholder="Filter faculty, department, or course..." onkeyup="renderFacultyDirectory()" style="padding:6px 12px; font-size:12px; border:1px solid var(--border); border-radius:6px; width:260px;">
+                    </div>
                 </div>
 
                 <div class="scroll-wrapper">
                     <table>
                         <thead>
                             <tr>
-                                <th>Instructor Name (Click for History)</th>
-                                <th>Home Department</th>
-                                <th class="num">Weighted Sections</th>
-                                <th class="num">Cadet Contact Load</th>
+                                <th>Instructor Name (Click for Details)</th>
+                                <th>School</th>
+                                <th>Home Dept</th>
+                                <th>Billet Status</th>
+                                <th>Expected Tier</th>
+                                <th class="num">Actual Secs</th>
+                                <th class="num">Delta</th>
+                                <th class="num">Cadet Contact</th>
                                 <th class="num">Total Seats</th>
-                                <th class="num">Unique Cadets</th>
                                 <th class="num">Avg Class Size</th>
                                 <th>Courses Taught</th>
                             </tr>
