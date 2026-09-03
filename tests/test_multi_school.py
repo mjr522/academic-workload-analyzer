@@ -33,17 +33,17 @@ class TestMultiSchoolArchitecture(unittest.TestCase):
         self.assertIn('HASS', SCHOOL_METADATA)
 
         sine = SCHOOL_METADATA['SINE']
-        self.assertEqual(sine['dean'], 'Col James Gresham, Dean')
+        self.assertEqual(sine['dean'], 'Dean of Engineering Sciences')
         self.assertIn('ESME', sine['departments'])
         self.assertIn('ESAN', sine['departments'])
 
         sibs = SCHOOL_METADATA['SIBS']
-        self.assertEqual(sibs['dean'], 'Col Steven Hasstedt, Dean')
+        self.assertEqual(sibs['dean'], 'Dean of Basic Sciences')
         self.assertIn('BSCH', sibs['departments'])
         self.assertIn('BSMS', sibs['departments'])
 
         hass = SCHOOL_METADATA['HASS']
-        self.assertEqual(hass['dean'], 'Col Meg Martin, Dean')
+        self.assertEqual(hass['dean'], 'Dean of Humanities & Social Sciences')
         self.assertIn('HSHI', hass['departments'])
         self.assertIn('HSBL', hass['departments'])
 
@@ -73,26 +73,26 @@ class TestMultiSchoolArchitecture(unittest.TestCase):
         s_sine = SectionRecord(
             file_source='test', term='2251', class_nbr='101', subject='MECHENGR',
             course_number='101', course_title='Statics', section_code='M1',
-            credit_units=3.0, instructors=['Gresham, James'], cadet_ids={'C1', 'C2', 'C3'},
+            credit_units=3.0, instructors=['Instructor, Sine A'], cadet_ids={'C1', 'C2', 'C3'},
             section_weight=1.0, cadet_weight=1.0, weight_type='Full Semester', department='ESME'
         )
         s_sibs = SectionRecord(
             file_source='test', term='2251', class_nbr='102', subject='CHEM',
             course_number='101', course_title='General Chem', section_code='T1',
-            credit_units=3.0, instructors=['Hasstedt, Steven'], cadet_ids={'C4', 'C5'},
+            credit_units=3.0, instructors=['Instructor, Sibs B'], cadet_ids={'C4', 'C5'},
             section_weight=1.0, cadet_weight=1.0, weight_type='Full Semester', department='BSCH'
         )
         s_hass = SectionRecord(
             file_source='test', term='2251', class_nbr='103', subject='HISTORY',
             course_number='101', course_title='Military History', section_code='W1',
-            credit_units=3.0, instructors=['Martin, Meg'], cadet_ids={'C6', 'C7', 'C8', 'C9'},
+            credit_units=3.0, instructors=['Instructor, Hass C'], cadet_ids={'C6', 'C7', 'C8', 'C9'},
             section_weight=1.0, cadet_weight=1.0, weight_type='Full Semester', department='HSHI'
         )
 
         cadets = {
-            'C1': CadetRecord(cadet_id='C1', major1='Mechanical Engineering', class_year='2026', advisor='Gresham, James'),
-            'C4': CadetRecord(cadet_id='C4', major1='Chemistry', class_year='2027', advisor='Hasstedt, Steven'),
-            'C6': CadetRecord(cadet_id='C6', major1='History', class_year='2028', advisor='Martin, Meg'),
+            'C1': CadetRecord(cadet_id='C1', major1='Mechanical Engineering', class_year='2026', advisor='Instructor, Sine A'),
+            'C4': CadetRecord(cadet_id='C4', major1='Chemistry', class_year='2027', advisor='Instructor, Sibs B'),
+            'C6': CadetRecord(cadet_id='C6', major1='History', class_year='2028', advisor='Instructor, Hass C'),
         }
 
         engine = MetricsEngine([s_sine, s_sibs, s_hass], cadets=cadets)

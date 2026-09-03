@@ -19,7 +19,7 @@ SCHOOL_METADATA: Dict[str, Dict[str, Any]] = {
         'code': 'SINE',
         'name': 'School of Integrated Engineering Sciences',
         'short_name': 'Engineering Sciences (SINE)',
-        'dean': 'Col James Gresham, Dean',
+        'dean': 'Dean of Engineering Sciences',
         'icon': '⚙️',
         'departments': ['ESME', 'ESCS', 'ESAN', 'ESCE', 'ESEC', 'ESAS', 'ESIS']
     },
@@ -27,7 +27,7 @@ SCHOOL_METADATA: Dict[str, Dict[str, Any]] = {
         'code': 'SIBS',
         'name': 'School of Integrated Basic Sciences',
         'short_name': 'Basic Sciences (SIBS)',
-        'dean': 'Col Steven Hasstedt, Dean',
+        'dean': 'Dean of Basic Sciences',
         'icon': '🔬',
         'departments': ['BSBI', 'BSCH', 'BSMS', 'BSPM']
     },
@@ -35,7 +35,7 @@ SCHOOL_METADATA: Dict[str, Dict[str, Any]] = {
         'code': 'HASS',
         'name': 'School of Integrated Humanities, Arts, & Social Sciences',
         'short_name': 'Humanities & Social Sciences (HASS)',
-        'dean': 'Col Meg Martin, Dean',
+        'dean': 'Dean of Humanities & Social Sciences',
         'icon': '📚',
         'departments': ['HSBL', 'HSEG', 'HSEN', 'HSHI', 'HSLA', 'HSLC', 'HSMA', 'HSMI', 'HSPS', 'HSPY']
     }

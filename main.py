@@ -121,11 +121,11 @@ def main():
         print("-" * 95)
         print("SUMMARY BY SCHOOL:")
         sfmt = "{:<8} {:<42} {:>5} {:>5} {:>6} {:>7} {:>7} {:>7}"
-        print(sfmt.format("School", "Dean / Leadership", "Depts", "Fac", "Secs", "Seats", "SCH", "Sub10%"))
+        print(sfmt.format("School", "School Name", "Depts", "Fac", "Secs", "Seats", "SCH", "Sub10%"))
         print("-" * 95)
         for s in results.get('schools', []):
             print(sfmt.format(
-                s['school_code'], s['dean'][:42], s['departments_count'],
+                s['school_code'], s['school_name'][:42], s['departments_count'],
                 s['faculty_count'], s['total_sections'], s['total_cadet_seats'],
                 int(s['total_sch']), f"{s['sub10_percentage']}%"
             ))

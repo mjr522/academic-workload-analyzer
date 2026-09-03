@@ -17,6 +17,7 @@ function initApp() {
     // 2. Setup JSON file input handler
     const fileInput = document.getElementById('jsonFileInput');
     if (fileInput) {
+        fileInput.addEventListener('click', () => { fileInput.value = ''; });
         fileInput.addEventListener('change', handleFileSelect);
     }
 
@@ -75,18 +76,25 @@ function handleFileSelect(e) {
 }
 
 function processJsonFile(file) {
+    if (!file) return;
     const reader = new FileReader();
     reader.onload = (event) => {
         try {
             const data = JSON.parse(event.target.result);
             if (!data.school_kpis && !data.institution_kpis) {
-                alert("Error parsing JSON file. Please ensure it is a valid workload_data.json export.");
+                alert("Error: The selected JSON file does not appear to be a valid workload_data.json export.");
                 return;
             }
             loadDataset(data);
+            console.log("Successfully loaded workload dataset:", data);
         } catch (err) {
             alert(`Error reading JSON file: ${err.message}`);
+            console.error(err);
         }
+    };
+    reader.onerror = (e) => {
+        alert("Failed to read file from disk.");
+        console.error(e);
     };
     reader.readAsText(file);
 }
@@ -100,24 +108,24 @@ function loadDataset(data) {
         currentSchoolScope = scopeSelect.value || 'ALL';
     }
 
-    // Update Executive KPIs & Dean Badge
-    updateExecutiveKPIs(data, currentSchoolScope);
-    updateSchoolDeanBadge(data, currentSchoolScope);
+    try {
+        updateExecutiveKPIs(data, currentSchoolScope);
+        updateSchoolDeanBadge(data, currentSchoolScope);
+        renderExecutiveCharts(data, currentSchoolScope);
+    } catch (e) {
+        console.error("Error in executive charts/KPIs:", e);
+    }
 
-    // Render Executive Charts
-    renderExecutiveCharts(data, currentSchoolScope);
-
-    // Initialize View Controllers
-    initDepartmentDropdown(data.departments);
-    renderCurriculumView();
-    renderFacultyDirectory();
-    initWhatIfSandbox();
+    try { initDepartmentDropdown(data.departments); } catch (e) { console.error("Error in initDepartmentDropdown:", e); }
+    try { renderCurriculumView(); } catch (e) { console.error("Error in renderCurriculumView:", e); }
+    try { renderFacultyDirectory(); } catch (e) { console.error("Error in renderFacultyDirectory:", e); }
+    try { initWhatIfSandbox(); } catch (e) { console.error("Error in initWhatIfSandbox:", e); }
 
     // Show data loaded banner
     const banner = document.getElementById('dataLoadedBadge');
     if (banner) {
-        const kpis = data.institution_kpis || data.school_kpis;
-        const termStr = (data.meta && data.meta.terms) ? data.meta.terms.join(', ') : 'Active';
+        const kpis = data.institution_kpis || data.school_kpis || {};
+        const termStr = (data.meta && data.meta.terms && data.meta.terms.length > 0) ? data.meta.terms.join(', ') : 'Active';
         banner.style.display = 'inline-flex';
         banner.textContent = `Data Loaded: ${(kpis.total_sections || 0).toLocaleString()} Sections (${termStr})`;
     }
@@ -143,7 +151,7 @@ function updateSchoolDeanBadge(data, scope) {
     } else {
         const s = schools.find(item => item.school_code === scope);
         if (s) {
-            badge.innerHTML = `<strong>${s.dean}</strong> | ${s.departments_count} Departments | ${s.faculty_count} Faculty`;
+            badge.innerHTML = `<strong>${s.school_name || s.short_name}</strong> | ${s.departments_count} Departments | ${s.faculty_count} Faculty`;
         } else {
             badge.innerHTML = `School Scope: ${scope}`;
         }
@@ -213,4 +221,4 @@ function switchTab(tabId) {
     } else if (tabId === 'tab-whatif') {
         renderWhatIfFacultyTable();
     }
-}\n
+}

@@ -156,7 +156,7 @@ function renderQuadrantChart(items, yBenchmark, isSchoolLevel) {
                         label: function(context) {
                             const raw = context.raw;
                             if (isSchoolLevel) {
-                                return `[${raw.code}] ${raw.name}: ${raw.y} cadets/inst, ${raw.x} secs/inst (${(raw.totalSeats || 0).toLocaleString()} seats, ${raw.facultyCount} faculty, ${raw.sub10Pct}% sub-10) — ${raw.dean}`;
+                                return `[${raw.code}] ${raw.name}: ${raw.y} cadets/inst, ${raw.x} secs/inst (${(raw.totalSeats || 0).toLocaleString()} seats, ${raw.facultyCount} faculty, ${raw.sub10Pct}% sub-10)`;
                             } else {
                                 return `${raw.code} (${raw.name}): ${raw.y} cadets/inst, ${raw.x} secs/inst (${(raw.totalSeats || 0).toLocaleString()} seats, ${raw.facultyCount} faculty, ${raw.sub10Pct}% sub-10)`;
                             }
@@ -516,4 +516,4 @@ function renderDeptSizeDistChart(dist) {
             }
         }
     });
-}\n
+}
