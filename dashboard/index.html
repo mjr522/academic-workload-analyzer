@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Academic Resourcing & Faculty Workload Platform | School of Integrated Engineering</title>
+    <!-- Chart.js for high-performance vector visualizations -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Main Executive Header -->
+        <header>
+            <div class="header-title">
+                <h1>🏛️ School of Integrated Engineering</h1>
+                <p>Academic Resourcing, Faculty Workload Architecture, & Department Capacity Platform</p>
+            </div>
+            <div class="header-controls">
+                <span id="dataLoadedBadge" class="badge badge-dept" style="display:none; padding:6px 10px; font-size:12px;"></span>
+                <button class="privacy-toggle-btn" id="privacyToggleBtn">👁️ Names Visible (Internal View)</button>
+                <label class="file-drop-area" title="Load a local workload_data.json file (100% private, runs entirely inside your browser)">
+                    📁 Load Local Data JSON
+                    <input type="file" id="jsonFileInput" accept=".json" style="display:none;">
+                </label>
+            </div>
+        </header>
+
+        <!-- KPI Banner -->
+        <div class="kpi-grid">
+            <div class="kpi-card">
+                <div class="kpi-title">Total Cadet Seats</div>
+                <div class="kpi-value" id="kpiTotalCadets">-</div>
+                <div class="kpi-sub">Enrolled course seats</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-title">Active Faculty Count</div>
+                <div class="kpi-value" id="kpiFacultyCount">-</div>
+                <div class="kpi-sub">Deduplicated instructors</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-title">Total Active Sections</div>
+                <div class="kpi-value" id="kpiTotalSections">-</div>
+                <div class="kpi-sub">Lecture & lab sections</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-title">Student Credit Hours</div>
+                <div class="kpi-value" id="kpiTotalSCH">-</div>
+                <div class="kpi-sub">Total SCH delivered</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-title">Average Section Size</div>
+                <div class="kpi-value" id="kpiAvgSecSize">-</div>
+                <div class="kpi-sub">Cadets per class</div>
+            </div>
+            <div class="kpi-card alert-card">
+                <div class="kpi-title">Sections with ≤ 10 Cadets</div>
+                <div class="kpi-value" id="kpiSub10Secs">-</div>
+                <div class="kpi-sub">Capstones & depth electives</div>
+            </div>
+        </div>
+
+        <!-- Tab Navigation Bar -->
+        <nav class="nav-tabs-bar">
+            <button class="nav-tab-btn active" id="btn-tab-executive" onclick="switchTab('tab-executive')">📊 Executive 2×2 Matrix</button>
+            <button class="nav-tab-btn" id="btn-tab-department" onclick="switchTab('tab-department')">🏢 Department Drilldown</button>
+            <button class="nav-tab-btn" id="btn-tab-curriculum" onclick="switchTab('tab-curriculum')">📚 Curriculum & Capstones</button>
+            <button class="nav-tab-btn" id="btn-tab-faculty" onclick="switchTab('tab-faculty')">👥 Faculty Directory</button>
+            <button class="nav-tab-btn whatif-btn" id="btn-tab-whatif" onclick="switchTab('tab-whatif')">⚙️ "What-If" Scenario Sandbox</button>
+        </nav>
+
+        <!-- ================================================================= -->
+        <!-- TAB 1: EXECUTIVE 2x2 MATRIX PANE -->
+        <!-- ================================================================= -->
+        <div id="tab-executive" class="tab-pane">
+            <div class="grid-2">
+                <!-- 2x2 Resourcing Quadrant Matrix -->
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <div class="card-title">Department Resourcing Matrix (2×2 Quadrant)</div>
+                            <div class="card-desc">X: Course Prep Load (Weighted Sections/Inst) | Y: Student Contact Load (Cadets/Inst) | Bubble Size: Total Cadet Volume</div>
+                        </div>
+                    </div>
+                    <div style="height: 380px; position: relative;">
+                        <canvas id="quadrantChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Department SCH Ranking Chart -->
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <div class="card-title">Student Credit Hours by Department</div>
+                            <div class="card-desc">Total SCH delivered across engineering and computing disciplines</div>
+                        </div>
+                    </div>
+                    <div style="height: 380px; position: relative;">
+                        <canvas id="rankingChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================================================================= -->
+        <!-- TAB 2: DEPARTMENT DRILLDOWN PANE -->
+        <!-- ================================================================= -->
+        <div id="tab-department" class="tab-pane" style="display: none;">
+            <div class="dept-select-bar">
+                <label for="deptSelect">Select Engineering Department:</label>
+                <select id="deptSelect"></select>
+                <span id="deptSubjs" style="font-size: 12px; color: var(--text-muted); margin-left: 10px;"></span>
+            </div>
+
+            <!-- Department Vitals Cards -->
+            <div class="card">
+                <div class="card-header">
+                    <div>
+                        <h2 id="deptTitle" style="color: var(--primary); font-size: 18px;">Department Overview</h2>
+                        <div class="card-desc">Comprehensive footprint across courses, credit hours, cadet majors, and advising</div>
+                    </div>
+                </div>
+
+                <div class="kpi-grid" style="margin-bottom: 16px;">
+                    <div class="kpi-card">
+                        <div class="kpi-title">Courses Offered</div>
+                        <div class="kpi-value" id="deptMetricCourses">-</div>
+                        <div class="kpi-sub">Unique catalog numbers</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-title">Active Sections</div>
+                        <div class="kpi-value" id="deptMetricSections">-</div>
+                        <div class="kpi-sub">Classroom & labs</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-title">Total Seats Enrolled</div>
+                        <div class="kpi-value" id="deptMetricSeats">-</div>
+                        <div class="kpi-sub">Cadet course enrollments</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-title">Student Credit Hours</div>
+                        <div class="kpi-value" id="deptMetricSCH">-</div>
+                        <div class="kpi-sub">Total SCH produced</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-title">Declared Majors</div>
+                        <div class="kpi-value" id="deptMetricMajors">-</div>
+                        <div class="kpi-sub">Cadets in department majors</div>
+                    </div>
+                    <div class="kpi-card alert-card">
+                        <div class="kpi-title">Sections ≤ 10 Cadets</div>
+                        <div class="kpi-value" id="deptMetricSub10">-</div>
+                        <div class="kpi-sub">Depth & capstone sections</div>
+                    </div>
+                </div>
+
+                <!-- Major Breakdown Tags -->
+                <div style="margin-bottom: 20px;">
+                    <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px;">Declared Majors Housed in Department:</div>
+                    <div id="deptMajorsList" style="display: flex; gap: 8px; flex-wrap: wrap;"></div>
+                </div>
+
+                <!-- Grid with Pipeline Chart & Advising Stats -->
+                <div class="grid-2">
+                    <div>
+                        <div style="font-size: 13px; font-weight: 700; margin-bottom: 8px;">Cadet Major Pipeline by Class Year:</div>
+                        <div style="height: 260px; position: relative;">
+                            <canvas id="pipelineChart"></canvas>
+                        </div>
+                    </div>
+                    <div>
+                        <div style="font-size: 13px; font-weight: 700; margin-bottom: 8px;">Advising & Course Level Footprint:</div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px;">
+                            <div style="background:#f8fafc; border:1px solid var(--border); padding:10px 14px; border-radius:6px;">
+                                <div style="font-size:11px; font-weight:700; color:var(--text-muted);">TOTAL ADVISEES</div>
+                                <div id="deptAdvTotal" style="font-size:20px; font-weight:700; color:var(--primary);">-</div>
+                            </div>
+                            <div style="background:#f8fafc; border:1px solid var(--border); padding:10px 14px; border-radius:6px;">
+                                <div style="font-size:11px; font-weight:700; color:var(--text-muted);">ACTIVE ADVISORS</div>
+                                <div id="deptAdvActive" style="font-size:20px; font-weight:700; color:var(--primary);">-</div>
+                            </div>
+                        </div>
+
+                        <div style="background:#f8fafc; border:1px solid var(--border); padding:12px; border-radius:6px;">
+                            <div style="font-size:11.5px; font-weight:700; color:var(--text-muted); margin-bottom:6px;">COURSE LEVEL ENROLLMENT STRATIFICATION:</div>
+                            <div style="display:flex; justify-content:space-between; font-size:12px;">
+                                <span>100-Level Core: <strong id="deptLvl100">-</strong></span>
+                                <span>200-Level Core: <strong id="deptLvl200">-</strong></span>
+                                <span>300-Level Depth: <strong id="deptLvl300">-</strong></span>
+                                <span>400-Level Capstone: <strong id="deptLvl400">-</strong></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Department Faculty Table -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">Department Assigned Faculty</div>
+                </div>
+                <div class="scroll-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Instructor Name</th>
+                                <th>Primary Department</th>
+                                <th class="num">Weighted Sections</th>
+                                <th class="num">Cadet Contact Load</th>
+                                <th class="num">Total Seats</th>
+                                <th class="num">Avg Class Size</th>
+                                <th>Courses Taught</th>
+                            </tr>
+                        </thead>
+                        <tbody id="deptFacultyTbody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================================================================= -->
+        <!-- TAB 3: CURRICULUM & CAPSTONES PANE -->
+        <!-- ================================================================= -->
+        <div id="tab-curriculum" class="tab-pane" style="display: none;">
+            <div class="card">
+                <div class="card-header">
+                    <div>
+                        <div class="card-title">Curriculum Health & Section Distribution Audit</div>
+                        <div class="card-desc">Audit course section sizes, small section proliferation, and multi-section senior design capstones</div>
+                    </div>
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                        <button class="btn btn-primary curric-filter-btn" id="btn-curric-all" onclick="setCurriculumFilter('all')">All Sections</button>
+                        <button class="btn curric-filter-btn" id="btn-curric-sub10" onclick="setCurriculumFilter('sub10')">Sections ≤ 10 Cadets</button>
+                        <button class="btn curric-filter-btn" id="btn-curric-capstone" onclick="setCurriculumFilter('capstone')">Senior Capstones</button>
+                        <input type="text" id="curricSearch" placeholder="Filter by course or title..." onkeyup="filterAndRenderCurriculumTable()" style="padding:6px 12px; font-size:12px; border:1px solid var(--border); border-radius:6px;">
+                    </div>
+                </div>
+
+                <div class="kpi-grid" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 16px;">
+                    <div class="kpi-card">
+                        <div class="kpi-title">Total Active Sections</div>
+                        <div class="kpi-value" id="curricTotalSecs">-</div>
+                    </div>
+                    <div class="kpi-card alert-card">
+                        <div class="kpi-title">Sections with ≤ 10 Cadets</div>
+                        <div class="kpi-value" id="curricSub10Secs">-</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-title">Senior Design Capstone Sections</div>
+                        <div class="kpi-value" id="curricCapstoneSecs">-</div>
+                    </div>
+                </div>
+
+                <div class="scroll-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Term</th>
+                                <th>Dept</th>
+                                <th>Course Number</th>
+                                <th>Course Title</th>
+                                <th>Section</th>
+                                <th class="num">Cadets</th>
+                                <th class="num">Credits</th>
+                                <th>Status / Badges</th>
+                            </tr>
+                        </thead>
+                        <tbody id="curricTbody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================================================================= -->
+        <!-- TAB 4: FACULTY WORKLOAD DIRECTORY PANE -->
+        <!-- ================================================================= -->
+        <div id="tab-faculty" class="tab-pane" style="display: none;">
+            <div class="card">
+                <div class="card-header">
+                    <div>
+                        <div class="card-title">School Faculty Workload Directory</div>
+                        <div class="card-desc">Complete roster of instructors across the School of Integrated Engineering</div>
+                    </div>
+                    <input type="text" id="facultySearch" placeholder="Filter faculty, department, or course..." onkeyup="renderFacultyDirectory()" style="padding:6px 12px; font-size:12px; border:1px solid var(--border); border-radius:6px; width:280px;">
+                </div>
+
+                <div class="scroll-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Instructor Name (Click for History)</th>
+                                <th>Home Department</th>
+                                <th class="num">Weighted Sections</th>
+                                <th class="num">Cadet Contact Load</th>
+                                <th class="num">Total Seats</th>
+                                <th class="num">Unique Cadets</th>
+                                <th class="num">Avg Class Size</th>
+                                <th>Courses Taught</th>
+                            </tr>
+                        </thead>
+                        <tbody id="facultyTbody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================================================================= -->
+        <!-- TAB 5: WHAT-IF SCENARIO SANDBOX PANE -->
+        <!-- ================================================================= -->
+        <div id="tab-whatif" class="tab-pane" style="display: none;">
+            <div class="card">
+                <div class="card-header">
+                    <div>
+                        <div class="card-title">⚙️ "What-If" Staffing & Resourcing Scenario Sandbox</div>
+                        <div class="card-desc">Simulate reassigning faculty between departments, changing expected tier roles, and export staffing proposals</div>
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn btn-amber" onclick="applyWhatIfRecalculation()">⚡ Recalculate Scenario Live</button>
+                        <button class="btn" onclick="exportScenarioJSON()">💾 Export Scenario JSON</button>
+                        <button class="btn" onclick="exportScenarioCSV()">📑 Export Summary CSV</button>
+                    </div>
+                </div>
+
+                <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 14px;">
+                    Department heads can simulate staffing changes below (e.g. promoting a faculty member to Course Director or reallocating an instructor to another program). Click <strong>Recalculate Scenario Live</strong> to watch all department averages and the 2×2 Matrix update in real time.
+                </p>
+
+                <div class="scroll-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Faculty Member</th>
+                                <th>Assigned Home Department</th>
+                                <th>Role Expectation Tier</th>
+                                <th class="num">Weighted Sections</th>
+                                <th class="num">Cadet Contact Load</th>
+                                <th>Courses Taught</th>
+                            </tr>
+                        </thead>
+                        <tbody id="whatifFacultyTbody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Instructor Detail Modal -->
+    <div id="instModal" class="modal-overlay" onclick="closeFacultyModal(event)">
+        <div class="modal-card" onclick="event.stopPropagation()">
+            <span class="modal-close" onclick="closeFacultyModal()">&times;</span>
+            <h2 id="modalInstName" style="color: var(--primary); margin-bottom: 8px;">Instructor Detail</h2>
+            <div id="modalInstMeta" style="margin-bottom: 16px; font-size: 13px; color: var(--text-muted);"></div>
+            <h4 style="margin-bottom: 8px; font-size: 14px; font-weight: 600;">Teaching Assignments Breakdown:</h4>
+            <div class="scroll-wrapper" style="max-height: 360px;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Term</th>
+                            <th>Course</th>
+                            <th>Title</th>
+                            <th>Section</th>
+                            <th class="num">Cadets</th>
+                            <th>Weight / Type</th>
+                            <th>Co-Instructors</th>
+                        </tr>
+                    </thead>
+                    <tbody id="modalCourseTbody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Application Controller Scripts -->
+    <script src="js/charts.js"></script>
+    <script src="js/department_view.js"></script>
+    <script src="js/curriculum_view.js"></script>
+    <script src="js/faculty_view.js"></script>
+    <script src="js/whatif_sandbox.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

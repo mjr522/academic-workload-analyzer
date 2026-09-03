@@ -1,0 +1,44 @@
+# ==========================================
+# STRICT PRIVACY & LOCAL-FIRST SAFEGUARDS
+# ==========================================
+
+# Block ALL CSV files containing personnel or student data
+*.csv
+*.CSV
+
+# Block all generated analytical reports & raw outputs
+output*/
+by_semester/
+*.xlsx
+*.xls
+
+# Block legacy & archive directories
+archive/
+
+# Block local data exports containing personnel names
+*data*.json
+*roster*.json
+!dashboard/data/template_schema.json
+
+# Presentation binaries
+*.pptx
+
+# ==========================================
+# Standard Development Ignores
+# ==========================================
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Environment & IDE
+.env
+.venv
+env/
+venv/
+.idea/
+.vscode/
+.gemini/
+*.log

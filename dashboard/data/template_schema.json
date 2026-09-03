@@ -1,0 +1,315 @@
+{
+  "schema_version": "2.0.0",
+  "generated_at": "2026-09-03T09:00:00Z",
+  "meta": {
+    "files_processed": ["Template_Sample_Data.csv"],
+    "terms": ["2268"],
+    "total_sections": 340,
+    "total_cadets": 4233
+  },
+  "school_kpis": {
+    "total_sections": 340,
+    "total_cadet_seats": 5940,
+    "total_sch": 17500.0,
+    "unique_faculty_count": 84,
+    "unique_departments_count": 6,
+    "overall_avg_sec_per_inst": 2.4,
+    "overall_avg_stu_per_inst": 38.5,
+    "overall_avg_section_size": 17.5,
+    "overall_sub10_count": 74,
+    "overall_sub10_pct": 21.8
+  },
+  "departments": [
+    {
+      "dept_code": "DFEM",
+      "dept_name": "Mechanical Engineering",
+      "division": "Engineering",
+      "subjects_included": ["MECHENGR", "SYSENGR"],
+      "faculty_count": 18,
+      "total_sections": 54,
+      "total_courses": 17,
+      "total_cadet_seats": 1051,
+      "total_sch": 3090.0,
+      "sub10_sections_count": 20,
+      "sub10_percentage": 37.0,
+      "capstone_sections_count": 13,
+      "sections_per_inst_mean": 2.6,
+      "sections_per_inst_median": 2.5,
+      "students_per_inst_mean": 42.0,
+      "students_per_inst_median": 40.0,
+      "students_per_inst_max": 65.0,
+      "section_size_mean": 19.5,
+      "section_size_median": 18.0,
+      "course_levels": { "100": 0, "200": 586, "300": 293, "400": 172 },
+      "declared_majors_total": 226,
+      "declared_majors": { "Systems Engineering": 136, "Mechanical Engineering": 90 },
+      "class_pipeline": {
+        "Mechanical Engineering": { "2026": 28, "2027": 32, "2028": 30, "2029": 0 },
+        "Systems Engineering": { "2026": 42, "2027": 46, "2028": 48, "2029": 0 }
+      },
+      "advising_stats": {
+        "active_advisors_count": 16,
+        "total_advisees": 226,
+        "mean_advisees_per_advisor": 14.1,
+        "max_advisees": 33
+      },
+      "non_teaching_placeholders": {
+        "admin_fte_allocated": null,
+        "research_fte_allocated": null,
+        "lab_ops_hazard_rating": null,
+        "service_fte_allocated": null
+      }
+    },
+    {
+      "dept_code": "DFCS",
+      "dept_name": "Computer Science",
+      "division": "Engineering",
+      "subjects_included": ["COMPSCI", "CYBERSCI"],
+      "faculty_count": 16,
+      "total_sections": 65,
+      "total_courses": 16,
+      "total_cadet_seats": 1135,
+      "total_sch": 3487.0,
+      "sub10_sections_count": 10,
+      "sub10_percentage": 15.4,
+      "capstone_sections_count": 4,
+      "sections_per_inst_mean": 2.8,
+      "sections_per_inst_median": 3.0,
+      "students_per_inst_mean": 52.0,
+      "students_per_inst_median": 50.0,
+      "students_per_inst_max": 75.0,
+      "section_size_mean": 17.5,
+      "section_size_median": 18.0,
+      "course_levels": { "100": 674, "200": 158, "300": 99, "400": 204 },
+      "declared_majors_total": 146,
+      "declared_majors": { "Computer Science": 77, "Cyber Science": 69 },
+      "class_pipeline": {
+        "Computer Science": { "2026": 22, "2027": 25, "2028": 30, "2029": 0 },
+        "Cyber Science": { "2026": 20, "2027": 24, "2028": 25, "2029": 0 }
+      },
+      "advising_stats": {
+        "active_advisors_count": 14,
+        "total_advisees": 146,
+        "mean_advisees_per_advisor": 10.4,
+        "max_advisees": 18
+      },
+      "non_teaching_placeholders": {
+        "admin_fte_allocated": null,
+        "research_fte_allocated": null,
+        "lab_ops_hazard_rating": null,
+        "service_fte_allocated": null
+      }
+    },
+    {
+      "dept_code": "DFAN",
+      "dept_name": "Aeronautics",
+      "division": "Engineering",
+      "subjects_included": ["AEROENGR"],
+      "faculty_count": 22,
+      "total_sections": 71,
+      "total_courses": 17,
+      "total_cadet_seats": 1158,
+      "total_sch": 3382.0,
+      "sub10_sections_count": 10,
+      "sub10_percentage": 14.1,
+      "capstone_sections_count": 5,
+      "sections_per_inst_mean": 2.5,
+      "sections_per_inst_median": 2.5,
+      "students_per_inst_mean": 44.0,
+      "students_per_inst_median": 42.0,
+      "students_per_inst_max": 70.0,
+      "section_size_mean": 16.3,
+      "section_size_median": 17.0,
+      "course_levels": { "100": 0, "200": 128, "300": 602, "400": 428 },
+      "declared_majors_total": 293,
+      "declared_majors": { "Aeronautical Engineering": 293 },
+      "class_pipeline": {
+        "Aeronautical Engineering": { "2026": 85, "2027": 98, "2028": 110, "2029": 0 }
+      },
+      "advising_stats": {
+        "active_advisors_count": 20,
+        "total_advisees": 293,
+        "mean_advisees_per_advisor": 14.6,
+        "max_advisees": 24
+      },
+      "non_teaching_placeholders": {
+        "admin_fte_allocated": null,
+        "research_fte_allocated": null,
+        "lab_ops_hazard_rating": null,
+        "service_fte_allocated": null
+      }
+    },
+    {
+      "dept_code": "DFEC",
+      "dept_name": "Electrical & Computer Engineering",
+      "division": "Engineering",
+      "subjects_included": ["ECE"],
+      "faculty_count": 14,
+      "total_sections": 44,
+      "total_courses": 13,
+      "total_cadet_seats": 777,
+      "total_sch": 2313.0,
+      "sub10_sections_count": 17,
+      "sub10_percentage": 38.6,
+      "capstone_sections_count": 9,
+      "sections_per_inst_mean": 2.4,
+      "sections_per_inst_median": 2.0,
+      "students_per_inst_mean": 36.0,
+      "students_per_inst_median": 34.0,
+      "students_per_inst_max": 58.0,
+      "section_size_mean": 17.7,
+      "section_size_median": 16.0,
+      "course_levels": { "100": 0, "200": 97, "300": 552, "400": 128 },
+      "declared_majors_total": 118,
+      "declared_majors": { "Electrical & Computer Engineering": 118 },
+      "class_pipeline": {
+        "Electrical & Computer Engineering": { "2026": 34, "2027": 40, "2028": 44, "2029": 0 }
+      },
+      "advising_stats": {
+        "active_advisors_count": 12,
+        "total_advisees": 118,
+        "mean_advisees_per_advisor": 9.8,
+        "max_advisees": 16
+      },
+      "non_teaching_placeholders": {
+        "admin_fte_allocated": null,
+        "research_fte_allocated": null,
+        "lab_ops_hazard_rating": null,
+        "service_fte_allocated": null
+      }
+    },
+    {
+      "dept_code": "DFCE",
+      "dept_name": "Civil & Environmental Engineering",
+      "division": "Engineering",
+      "subjects_included": ["CIVENGR"],
+      "faculty_count": 12,
+      "total_sections": 32,
+      "total_courses": 10,
+      "total_cadet_seats": 426,
+      "total_sch": 1275.0,
+      "sub10_sections_count": 10,
+      "sub10_percentage": 31.2,
+      "capstone_sections_count": 7,
+      "sections_per_inst_mean": 2.2,
+      "sections_per_inst_median": 2.0,
+      "students_per_inst_mean": 30.0,
+      "students_per_inst_median": 28.0,
+      "students_per_inst_max": 48.0,
+      "section_size_mean": 13.3,
+      "section_size_median": 12.0,
+      "course_levels": { "100": 0, "200": 0, "300": 193, "400": 233 },
+      "declared_majors_total": 182,
+      "declared_majors": { "Civil Engineering": 182 },
+      "class_pipeline": {
+        "Civil Engineering": { "2026": 52, "2027": 62, "2028": 68, "2029": 0 }
+      },
+      "advising_stats": {
+        "active_advisors_count": 10,
+        "total_advisees": 182,
+        "mean_advisees_per_advisor": 18.2,
+        "max_advisees": 25
+      },
+      "non_teaching_placeholders": {
+        "admin_fte_allocated": null,
+        "research_fte_allocated": null,
+        "lab_ops_hazard_rating": null,
+        "service_fte_allocated": null
+      }
+    },
+    {
+      "dept_code": "DFAS",
+      "dept_name": "Astronautics",
+      "division": "Engineering",
+      "subjects_included": ["ASTRENGR"],
+      "faculty_count": 10,
+      "total_sections": 28,
+      "total_courses": 9,
+      "total_cadet_seats": 629,
+      "total_sch": 1920.0,
+      "sub10_sections_count": 1,
+      "sub10_percentage": 3.6,
+      "capstone_sections_count": 2,
+      "sections_per_inst_mean": 2.4,
+      "sections_per_inst_median": 2.5,
+      "students_per_inst_mean": 48.0,
+      "students_per_inst_median": 46.0,
+      "students_per_inst_max": 65.0,
+      "section_size_mean": 22.5,
+      "section_size_median": 23.0,
+      "course_levels": { "100": 0, "200": 0, "300": 567, "400": 62 },
+      "declared_majors_total": 102,
+      "declared_majors": { "Astronautical Engineering": 102 },
+      "class_pipeline": {
+        "Astronautical Engineering": { "2026": 28, "2027": 34, "2028": 40, "2029": 0 }
+      },
+      "advising_stats": {
+        "active_advisors_count": 8,
+        "total_advisees": 102,
+        "mean_advisees_per_advisor": 12.8,
+        "max_advisees": 18
+      },
+      "non_teaching_placeholders": {
+        "admin_fte_allocated": null,
+        "research_fte_allocated": null,
+        "lab_ops_hazard_rating": null,
+        "service_fte_allocated": null
+      }
+    }
+  ],
+  "faculty_directory": [
+    {
+      "instructor": "Sample Instructor 01",
+      "primary_dept": "DFEM",
+      "subjects_taught": ["MECHENGR"],
+      "courses_taught": ["MECHENGR 330", "MECHENGR 491"],
+      "weighted_sections": 2.5,
+      "cadet_load_allocated": 42.0,
+      "total_cadet_seats": 42,
+      "unique_cadets": 42,
+      "avg_section_size": 16.8,
+      "course_assignments": [
+        { "term": "2268", "course": "MECHENGR 330", "title": "Deformable Bodies", "section": "M1A", "cadets": 24, "credit_units": 3.0, "sec_weight": 1.0, "weight_type": "Full Semester", "co_instructors": [] },
+        { "term": "2268", "course": "MECHENGR 491", "title": "Capstone Design I", "section": "T2A", "cadets": 6, "credit_units": 3.0, "sec_weight": 1.0, "weight_type": "Full Semester", "co_instructors": [] }
+      ]
+    }
+  ],
+  "sections_audit": [
+    {
+      "term": "2268",
+      "class_nbr": "1001",
+      "department": "DFEM",
+      "subject": "MECHENGR",
+      "course_nbr": "330",
+      "title": "DEFORMABLE BODIES",
+      "section": "M1A",
+      "credit_units": 3.0,
+      "cadet_count": 24,
+      "instructors": ["Sample Instructor 01"],
+      "section_weight": 1.0,
+      "cadet_weight": 1.0,
+      "weight_type": "Full Semester",
+      "is_sub10": false,
+      "is_capstone": false,
+      "sch": 72.0
+    },
+    {
+      "term": "2268",
+      "class_nbr": "1002",
+      "department": "DFEC",
+      "subject": "ECE",
+      "course_nbr": "463",
+      "title": "CAPSTONE DESIGN I",
+      "section": "M3A",
+      "credit_units": 3.0,
+      "cadet_count": 6,
+      "instructors": [],
+      "section_weight": 1.0,
+      "cadet_weight": 1.0,
+      "weight_type": "Full Semester",
+      "is_sub10": true,
+      "is_capstone": true,
+      "sch": 18.0
+    }
+  ]
+}
