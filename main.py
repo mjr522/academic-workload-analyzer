@@ -12,6 +12,9 @@ import glob
 import os
 import sys
 
+# Ensure the script directory is always on sys.path regardless of execution CWD
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
 from analyzer.parser import RegistrarParser
 from analyzer.metrics import MetricsEngine
 from analyzer.roster_generator import RosterGenerator
