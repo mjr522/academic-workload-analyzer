@@ -39,12 +39,26 @@ function setupFilePicker() {
 
         const reader = new FileReader();
         reader.onload = (event) => {
+            let parsed = null;
             try {
-                const parsed = JSON.parse(event.target.result);
-                loadDataset(parsed);
-                alert(`Successfully loaded: ${file.name}`);
+                parsed = JSON.parse(event.target.result);
             } catch (err) {
-                alert("Error parsing JSON file. Please ensure it is a valid workload_data.json export.");
+                console.error("JSON Syntax Error:", err);
+                alert("Error: File is not valid JSON syntax.");
+                return;
+            }
+
+            try {
+                loadDataset(parsed);
+                // Notification banner
+                const banner = document.getElementById('dataLoadedBadge');
+                if (banner) {
+                    banner.style.display = 'inline-flex';
+                    banner.textContent = `✓ Loaded: ${file.name} (${parsed.school_kpis ? parsed.school_kpis.total_sections.toLocaleString() : 0} Secs)`;
+                }
+            } catch (err) {
+                console.error("Error initializing dashboard with dataset:", err);
+                alert(`Error rendering dataset: ${err.message}`);
             }
         };
         reader.readAsText(file);

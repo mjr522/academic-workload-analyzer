@@ -7,6 +7,11 @@ let rankingChartInstance = null;
 let pipelineChartInstance = null;
 
 function renderQuadrantChart(departments, overallStats) {
+    if (typeof Chart === 'undefined') {
+        console.warn("Chart.js not loaded yet. Retrying in 200ms...");
+        setTimeout(() => renderQuadrantChart(departments, overallStats), 200);
+        return;
+    }
     const canvas = document.getElementById('quadrantChart');
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
@@ -85,6 +90,10 @@ function renderQuadrantChart(departments, overallStats) {
 }
 
 function renderRankingChart(departments, benchmark) {
+    if (typeof Chart === 'undefined') {
+        setTimeout(() => renderRankingChart(departments, benchmark), 200);
+        return;
+    }
     const canvas = document.getElementById('rankingChart');
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
@@ -125,6 +134,10 @@ function renderRankingChart(departments, benchmark) {
 }
 
 function renderPipelineChart(classPipelineData) {
+    if (typeof Chart === 'undefined') {
+        setTimeout(() => renderPipelineChart(classPipelineData), 200);
+        return;
+    }
     const canvas = document.getElementById('pipelineChart');
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
