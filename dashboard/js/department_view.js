@@ -122,6 +122,13 @@ function renderDepartmentDetails(deptCode) {
     } catch (e) {
         console.warn("Department faculty table error:", e);
     }
+
+    // Department Course Offerings & Sections Table
+    try {
+        renderDepartmentCoursesTable(dept.dept_code);
+    } catch (e) {
+        console.warn("Department courses table error:", e);
+    }
 }
 
 let currentDeptFacultySort = { col: null, dir: 'desc' };
@@ -228,3 +235,162 @@ function renderDepartmentFacultyTable(deptCode) {
         tbody.appendChild(tr);
     });
 }
+
+let currentDeptCoursesSort = { col: 'course', dir: 'asc' };
+let currentDeptCoursesCode = null;
+
+function sortDeptCoursesTable(colKey) {
+    if (currentDeptCoursesSort.col === colKey) {
+        currentDeptCoursesSort.dir = currentDeptCoursesSort.dir === 'desc' ? 'asc' : 'desc';
+    } else {
+        currentDeptCoursesSort.col = colKey;
+        // Default descending for numeric values (e.g. section size, credits), ascending for text
+        currentDeptCoursesSort.dir = ['cadet_count', 'credit_units'].includes(colKey) ? 'desc' : 'asc';
+    }
+    if (currentDeptCoursesCode) {
+        renderDepartmentCoursesTable(currentDeptCoursesCode);
+    }
+}
+
+function updateDeptCoursesSortIcons() {
+    const cols = ['course', 'title', 'section', 'term', 'cadet_count', 'credit_units'];
+    cols.forEach(c => {
+        const el = document.getElementById(`th-coursesort-${c}`);
+        const th = el ? el.closest('th') : null;
+        if (el) {
+            if (currentDeptCoursesSort.col === c) {
+                el.textContent = currentDeptCoursesSort.dir === 'desc' ? '▼' : '▲';
+                if (th) {
+                    th.classList.remove('sorted-desc', 'sorted-asc');
+                    th.classList.add(currentDeptCoursesSort.dir === 'desc' ? 'sorted-desc' : 'sorted-asc');
+                }
+            } else {
+                el.textContent = '↕';
+                if (th) {
+                    th.classList.remove('sorted-desc', 'sorted-asc');
+                }
+            }
+        }
+    });
+}
+
+function filterDeptCoursesTable() {
+    if (currentDeptCoursesCode) {
+        renderDepartmentCoursesTable(currentDeptCoursesCode);
+    }
+}
+
+function renderDepartmentCoursesTable(deptCode) {
+    currentDeptCoursesCode = deptCode;
+    const data = window.currentWorkloadData;
+    const tbody = document.getElementById('deptCoursesTbody');
+    if (!tbody || !data) return;
+    tbody.innerHTML = '';
+
+    updateDeptCoursesSortIcons();
+
+    const dept = (data.departments || []).find(d => d.dept_code === deptCode);
+    const subjs = dept ? (dept.subjects_included || []) : [];
+
+    // Filter to sections belonging to this department
+    let sections = (data.sections_audit || []).filter(s =>
+        s.department === deptCode ||
+        (deptCode === 'ESECE' && s.department === 'ESEC') ||
+        (subjs && subjs.includes(s.subject))
+    );
+
+    // Search filter
+    const searchInput = document.getElementById('deptCourseSearch');
+    const query = searchInput ? searchInput.value.trim().toLowerCase() : '';
+    if (query) {
+        sections = sections.filter(s => {
+            const courseStr = `${s.subject || ''} ${s.course_nbr || ''}`.toLowerCase();
+            const titleStr = (s.title || '').toLowerCase();
+            const secStr = (s.section || '').toLowerCase();
+            const termStr = String(s.term || '').toLowerCase();
+            const instStr = (s.instructors || []).join(' ').toLowerCase();
+            return courseStr.includes(query) || titleStr.includes(query) || secStr.includes(query) || termStr.includes(query) || instStr.includes(query);
+        });
+    }
+
+    if (sections.length === 0) {
+        const msg = query 
+            ? 'No course sections match your search query.' 
+            : 'No active course sections recorded for this department.';
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:#64748b; padding:18px;">${msg}</td></tr>`;
+        return;
+    }
+
+    // Sort sections
+    if (currentDeptCoursesSort.col) {
+        const col = currentDeptCoursesSort.col;
+        const dir = currentDeptCoursesSort.dir;
+        sections.sort((a, b) => {
+            let valA, valB;
+            if (col === 'course') {
+                valA = `${a.subject || ''} ${a.course_nbr || ''}`.trim();
+                valB = `${b.subject || ''} ${b.course_nbr || ''}`.trim();
+            } else {
+                valA = a[col];
+                valB = b[col];
+            }
+
+            if (typeof valA === 'number' || typeof valB === 'number' || ['cadet_count', 'credit_units'].includes(col)) {
+                valA = Number(valA) || 0;
+                valB = Number(valB) || 0;
+                return dir === 'desc' ? (valB - valA) : (valA - valB);
+            }
+
+            valA = String(valA || '').toLowerCase();
+            valB = String(valB || '').toLowerCase();
+            return dir === 'desc' ? valB.localeCompare(valA) : valA.localeCompare(valB);
+        });
+    }
+
+    const knownFacultySet = new Set((data.faculty_directory || []).map(x => x.instructor));
+
+    sections.forEach(s => {
+        const tr = document.createElement('tr');
+        const courseName = `${s.subject} ${s.course_nbr}`;
+        const cadetCount = s.cadet_count !== undefined ? s.cadet_count : 0;
+        const countStyle = s.is_sub10 ? 'color: #b45309; font-weight: 700;' : 'font-weight: 700;';
+
+        // Format instructors
+        let instHtml = '';
+        if (s.instructors && s.instructors.length > 0) {
+            instHtml = s.instructors.map(inst => {
+                const displayName = window.maskFacultyNames ? 'Faculty Member' : inst;
+                if (knownFacultySet.has(inst)) {
+                    return `<span style="color:var(--primary); cursor:pointer; font-weight:600; text-decoration:underline dotted;" onclick="openFacultyModal('${inst.replace(/'/g, "\\'")}')" title="View instructor workload">${displayName}</span>`;
+                } else {
+                    return `<span style="color:var(--text-main); font-weight:500;">${displayName}</span>`;
+                }
+            }).join(', ');
+        } else {
+            instHtml = '<span style="color:#94a3b8; font-style:italic;">Unassigned / Staff</span>';
+        }
+
+        // Badges for flags
+        const badges = [];
+        if (s.is_sub10) {
+            badges.push('<span class="badge badge-sub10" title="Low enrollment section (≤ 10 cadets)">≤ 10 Cadets</span>');
+        }
+        if (s.is_capstone) {
+            badges.push('<span class="badge badge-capstone" title="Senior Capstone Design / Culminating Experience">Capstone</span>');
+        }
+        const flagsHtml = badges.length > 0 ? badges.join(' ') : '<span style="color:#cbd5e1;">—</span>';
+
+        tr.innerHTML = `
+            <td><strong>${courseName}</strong></td>
+            <td style="font-size: 12.5px; max-width: 260px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${s.title || ''}">${s.title || '—'}</td>
+            <td><span class="badge badge-status" style="font-weight:600;">${s.section}</span></td>
+            <td style="font-size: 12px; color: var(--text-muted);">${s.term || '—'}</td>
+            <td class="num" style="${countStyle}">${cadetCount}</td>
+            <td class="num">${s.credit_units !== undefined ? Number(s.credit_units).toFixed(1) : '—'}</td>
+            <td style="font-size: 12px;">${instHtml}</td>
+            <td>${flagsHtml}</td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+

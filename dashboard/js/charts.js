@@ -22,7 +22,7 @@ const SCHOOL_COLORS = {
 const DEPT_COLORS = {
     // SINE (Engineering Sciences)
     'ESME': '#2563eb', 'ESCS': '#10b981', 'ESAN': '#f59e0b',
-    'ESEC': '#06b6d4', 'ESCE': '#8b5cf6', 'ESAS': '#ec4899', 'ESIS': '#64748b',
+    'ESECE': '#06b6d4', 'ESEC': '#06b6d4', 'ESCE': '#8b5cf6', 'ESAS': '#ec4899', 'ESIS': '#64748b',
     // SIBS (Basic Sciences)
     'BSBI': '#10b981', 'BSCH': '#059669', 'BSMS': '#0284c7', 'BSPM': '#4f46e5',
     // HASS (Humanities & Social Sciences)
@@ -104,7 +104,7 @@ function renderQuadrantChart(items, yBenchmark, isSchoolLevel) {
     const ctx = canvas.getContext('2d');
     if (quadrantChartInstance) quadrantChartInstance.destroy();
 
-    const activeItems = (items || []).filter(d => (d.faculty_count > 0 || d.total_sections > 0));
+    const activeItems = (items || []).filter(d => (isSchoolLevel || d.dept_code !== 'ESIS') && (d.faculty_count > 0 || d.total_sections > 0));
     if (activeItems.length === 0) return;
 
     let bubbleData;
@@ -115,7 +115,6 @@ function renderQuadrantChart(items, yBenchmark, isSchoolLevel) {
             r: Math.max(14, Math.min(36, Math.sqrt(s.total_cadet_seats || 10) * 0.22)),
             code: s.school_code,
             name: s.school_name,
-            dean: s.dean,
             totalSeats: s.total_cadet_seats,
             facultyCount: s.faculty_count,
             sub10Pct: s.sub10_percentage,

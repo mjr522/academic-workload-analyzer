@@ -345,6 +345,36 @@
                     </table>
                 </div>
             </div>
+
+            <!-- Department Course Offerings & Sections Table -->
+            <div class="card">
+                <div class="card-header">
+                    <div>
+                        <div class="card-title">Department Course Offerings & Sections</div>
+                        <div class="card-desc">Active course offerings, individual class sections, enrolled section sizes, and assigned instructors. Click any column header to sort.</div>
+                    </div>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <input type="text" id="deptCourseSearch" placeholder="Filter courses, sections, instructors..." style="padding: 6px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 12px; width: 240px;" oninput="filterDeptCoursesTable()">
+                    </div>
+                </div>
+                <div class="scroll-wrapper">
+                    <table id="deptCoursesTable">
+                        <thead>
+                            <tr>
+                                <th class="sortable" onclick="sortDeptCoursesTable('course')">Course <span class="sort-icon" id="th-coursesort-course">↕</span></th>
+                                <th class="sortable" onclick="sortDeptCoursesTable('title')">Course Title <span class="sort-icon" id="th-coursesort-title">↕</span></th>
+                                <th class="sortable" onclick="sortDeptCoursesTable('section')">Section <span class="sort-icon" id="th-coursesort-section">↕</span></th>
+                                <th class="sortable" onclick="sortDeptCoursesTable('term')">Term <span class="sort-icon" id="th-coursesort-term">↕</span></th>
+                                <th class="num sortable" onclick="sortDeptCoursesTable('cadet_count')">Section Size (Cadets) <span class="sort-icon" id="th-coursesort-cadet_count">↕</span></th>
+                                <th class="num sortable" onclick="sortDeptCoursesTable('credit_units')">Credits <span class="sort-icon" id="th-coursesort-credit_units">↕</span></th>
+                                <th>Instructors</th>
+                                <th>Flags</th>
+                            </tr>
+                        </thead>
+                        <tbody id="deptCoursesTbody"></tbody>
+                    </table>
+                </div>
+            </div>
         </div>
 
         <!-- ================================================================= -->

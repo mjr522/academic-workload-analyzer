@@ -36,6 +36,7 @@ class TestMultiSchoolArchitecture(unittest.TestCase):
         self.assertEqual(sine['dean'], 'Dean of Engineering Sciences')
         self.assertIn('ESME', sine['departments'])
         self.assertIn('ESAN', sine['departments'])
+        self.assertIn('ESECE', sine['departments'])
 
         sibs = SCHOOL_METADATA['SIBS']
         self.assertEqual(sibs['dean'], 'Dean of Basic Sciences')
@@ -54,6 +55,9 @@ class TestMultiSchoolArchitecture(unittest.TestCase):
         self.assertEqual(DEPARTMENT_ALIASES.get('DFME'), 'ESME')
         self.assertEqual(DEPARTMENT_ALIASES.get('DFCS'), 'ESCS')
         self.assertEqual(DEPARTMENT_ALIASES.get('DFAN'), 'ESAN')
+        self.assertEqual(DEPARTMENT_ALIASES.get('DFEC'), 'ESECE')
+        self.assertEqual(DEPARTMENT_ALIASES.get('ESEC'), 'ESECE')
+        self.assertEqual(DEPARTMENT_ALIASES.get('ESECE'), 'ESECE')
 
         # SIBS (supports both BS and SI alongside DF)
         self.assertEqual(DEPARTMENT_ALIASES.get('DFCH'), 'BSCH')
