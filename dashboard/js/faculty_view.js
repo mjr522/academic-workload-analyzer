@@ -75,14 +75,30 @@ function openFacultyModal(instName) {
 
     const modalName = window.maskFacultyNames ? 'Faculty Member (Masked)' : f.instructor;
     document.getElementById('modalInstName').textContent = modalName;
+    let ntwHtml = '';
+    if (f.section_equivalents && (f.section_equivalents.admin > 0 || f.section_equivalents.research > 0 || f.section_equivalents.labops > 0)) {
+        ntwHtml = `
+            <div style="margin-top: 8px; padding: 6px 10px; background: #f8fafc; border: 1px solid var(--border); border-radius: 6px; font-size: 12px;">
+                <strong>Non-Teaching Section Equivalents:</strong> 
+                Admin: <strong style="color:var(--primary);">+${Number(f.section_equivalents.admin).toFixed(1)}</strong> | 
+                Research: <strong style="color:var(--primary);">+${Number(f.section_equivalents.research).toFixed(1)}</strong> | 
+                Lab Ops: <strong style="color:var(--primary);">+${Number(f.section_equivalents.labops).toFixed(1)}</strong> &nbsp;→&nbsp;
+                <strong>Gross Burden:</strong> <span class="badge badge-dept" style="font-size:11.5px;">${Number(f.section_equivalents.gross_burden).toFixed(1)} secs</span>
+            </div>
+        `;
+    }
+
     document.getElementById('modalInstMeta').innerHTML = `
-        <strong>Primary Dept:</strong> <span class="badge badge-dept">${f.primary_dept}</span> &nbsp;|&nbsp;
-        <strong>Billet:</strong> <span class="badge" style="background:#f1f5f9; color:#334155;">${f.billet_status || 'Filled'}</span> &nbsp;|&nbsp;
-        <strong>Tier:</strong> <span class="badge" style="background:#e0f2fe; color:#0369a1;">${f.expected_tier || 'Line_Faculty'}</span> &nbsp;|&nbsp;
-        <strong>Actual Secs:</strong> ${f.weighted_sections} (Expected: ${f.expected_sections || 3.0}) &nbsp;|&nbsp;
-        <strong>Cadet Load:</strong> ${f.cadet_load_allocated} &nbsp;|&nbsp;
-        <strong>Advisees:</strong> ${f.advisees_count !== undefined ? f.advisees_count : 0} &nbsp;|&nbsp;
-        <strong>Avg Class Size:</strong> ${f.avg_section_size}
+        <div style="line-height: 1.8;">
+            <strong>Primary Dept:</strong> <span class="badge badge-dept">${f.primary_dept}</span> &nbsp;|&nbsp;
+            <strong>Billet:</strong> <span class="badge" style="background:#f1f5f9; color:#334155;">${f.billet_status || 'Filled'}</span> &nbsp;|&nbsp;
+            <strong>Tier:</strong> <span class="badge" style="background:#e0f2fe; color:#0369a1;">${f.expected_tier || 'Line_Faculty'}</span> &nbsp;|&nbsp;
+            <strong>Actual Secs:</strong> ${f.weighted_sections} (Expected: ${f.expected_sections || 3.0}) &nbsp;|&nbsp;
+            <strong>Cadet Load:</strong> ${f.cadet_load_allocated} &nbsp;|&nbsp;
+            <strong>Advisees:</strong> ${f.advisees_count !== undefined ? f.advisees_count : 0} &nbsp;|&nbsp;
+            <strong>Avg Class Size:</strong> ${f.avg_section_size}
+        </div>
+        ${ntwHtml}
     `;
 
     const tbody = document.getElementById('modalCourseTbody');

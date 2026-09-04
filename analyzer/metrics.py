@@ -24,6 +24,7 @@ from analyzer.config import (
     DEFAULT_EXCLUDED_SUBJECTS,
 )
 from analyzer.parser import SectionRecord, CadetRecord, parse_instructor_names
+from analyzer.roster_manager import compute_section_equivalents
 
 
 def calc_stats(values: List[float]) -> Dict[str, float]:
@@ -300,6 +301,36 @@ class MetricsEngine:
                 'moa_adjunct': moa_cnt
             }
 
+            dept_admin_sec = 0.0
+            dept_res_sec = 0.0
+            dept_lab_sec = 0.0
+            dept_gross_burden = 0.0
+
+            for inst in dept_faculty:
+                act_sec = instructors_data[inst]['sections_allocated']
+                r_entry = self.roster_manager.get_entry(inst) if self.roster_manager else None
+                if r_entry:
+                    eq = compute_section_equivalents(
+                        act_sec,
+                        r_entry.fte_academics_pct,
+                        r_entry.fte_admin_pct,
+                        r_entry.fte_research_pct,
+                        r_entry.fte_labops_pct
+                    )
+                else:
+                    eq = {'admin': 0.0, 'research': 0.0, 'labops': 0.0, 'gross_burden': act_sec}
+                
+                dept_admin_sec += eq['admin']
+                dept_res_sec += eq['research']
+                dept_lab_sec += eq['labops']
+                dept_gross_burden += eq['gross_burden']
+
+            is_calibrated = bool(
+                self.roster_manager and
+                self.roster_manager.has_fte_data and
+                any(self.roster_manager.get_entry(inst) is not None for inst in dept_faculty)
+            )
+
             dept_summaries.append({
                 'dept_code': dept_code,
                 'dept_name': meta['name'],
@@ -334,10 +365,17 @@ class MetricsEngine:
                     'max_advisees': adv_stats['max'],
                     'advisor_names': list(advisee_counts.keys())
                 },
+                'non_teaching_workload': {
+                    'admin_sections': round(dept_admin_sec, 2),
+                    'research_sections': round(dept_res_sec, 2),
+                    'labops_sections': round(dept_lab_sec, 2),
+                    'gross_burden_sections': round(dept_gross_burden, 2),
+                    'is_calibrated': is_calibrated
+                },
                 'non_teaching_placeholders': {
-                    'admin_fte_allocated': None,
-                    'research_fte_allocated': None,
-                    'lab_ops_hazard_rating': None,
+                    'admin_fte_allocated': round(dept_admin_sec, 2) if is_calibrated else None,
+                    'research_fte_allocated': round(dept_res_sec, 2) if is_calibrated else None,
+                    'lab_ops_hazard_rating': round(dept_lab_sec, 2) if is_calibrated else None,
                     'service_fte_allocated': None
                 }
             })
@@ -388,6 +426,12 @@ class MetricsEngine:
 
             mean_adv_load = round(s_total_advisees / len(s_active_advisors), 1) if s_active_advisors else 0.0
 
+            s_admin_sec = sum(d.get('non_teaching_workload', {}).get('admin_sections', 0.0) for d in s_depts)
+            s_res_sec = sum(d.get('non_teaching_workload', {}).get('research_sections', 0.0) for d in s_depts)
+            s_lab_sec = sum(d.get('non_teaching_workload', {}).get('labops_sections', 0.0) for d in s_depts)
+            s_gross_burden = sum(d.get('non_teaching_workload', {}).get('gross_burden_sections', 0.0) for d in s_depts)
+            s_is_calibrated = any(d.get('non_teaching_workload', {}).get('is_calibrated', False) for d in s_depts)
+
             school_summaries.append({
                 'school_code': s_code,
                 'school_name': s_meta['name'],
@@ -418,7 +462,14 @@ class MetricsEngine:
                     'mean_advisees_per_advisor': mean_adv_load
                 },
                 'section_size_distribution': s_dist,
-                'billet_summary': s_billet
+                'billet_summary': s_billet,
+                'non_teaching_workload': {
+                    'admin_sections': round(s_admin_sec, 2),
+                    'research_sections': round(s_res_sec, 2),
+                    'labops_sections': round(s_lab_sec, 2),
+                    'gross_burden_sections': round(s_gross_burden, 2),
+                    'is_calibrated': s_is_calibrated
+                }
             })
 
         # 6. Institution-wide Academic Division KPIs
@@ -462,6 +513,25 @@ class MetricsEngine:
             pdept = idata['primary_dept']
             sch_code = DEPARTMENT_METADATA.get(pdept, {}).get('school', 'OTHER')
 
+            roster_entry = self.roster_manager.get_entry(inst) if self.roster_manager else None
+            if roster_entry:
+                eq = compute_section_equivalents(
+                    sec_alloc,
+                    roster_entry.fte_academics_pct,
+                    roster_entry.fte_admin_pct,
+                    roster_entry.fte_research_pct,
+                    roster_entry.fte_labops_pct
+                )
+                fte_dist = {
+                    'academics_pct': round(roster_entry.fte_academics_pct * 100, 1),
+                    'admin_pct': round(roster_entry.fte_admin_pct * 100, 1),
+                    'research_pct': round(roster_entry.fte_research_pct * 100, 1),
+                    'labops_pct': round(roster_entry.fte_labops_pct * 100, 1)
+                }
+            else:
+                eq = {'admin': 0.0, 'research': 0.0, 'labops': 0.0, 'gross_burden': sec_alloc}
+                fte_dist = {'academics_pct': 100.0, 'admin_pct': 0.0, 'research_pct': 0.0, 'labops_pct': 0.0}
+
             faculty_directory.append({
                 'instructor': inst,
                 'primary_dept': pdept,
@@ -478,7 +548,9 @@ class MetricsEngine:
                 'total_cadet_seats': idata['total_cadet_seats'],
                 'unique_cadets': len(idata['unique_cadets']),
                 'avg_section_size': avg_sz,
-                'course_assignments': idata['course_details']
+                'course_assignments': idata['course_details'],
+                'fte_distribution': fte_dist,
+                'section_equivalents': eq
             })
 
         # 8. Granular Sections Audit List

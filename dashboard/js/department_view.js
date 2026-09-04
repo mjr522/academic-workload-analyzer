@@ -102,6 +102,33 @@ function renderDepartmentDetails(deptCode) {
     setTextSafe('deptBilletCiv', b.filled_civilian || 0);
     setTextSafe('deptBilletMoa', b.moa_adjunct || 0);
 
+    // Non-Teaching Workload (Section Equivalents)
+    const ntw = dept.non_teaching_workload || {};
+    const isCalibrated = Boolean(ntw.is_calibrated);
+
+    const statusBadge = document.getElementById('deptNonTeachingStatus');
+    if (statusBadge) {
+        if (isCalibrated) {
+            statusBadge.textContent = 'DH Calibrated (Dual-Rule)';
+            statusBadge.style.background = '#dcfce7';
+            statusBadge.style.color = '#15803d';
+        } else {
+            statusBadge.textContent = 'Baseline (Awaiting Roster)';
+            statusBadge.style.background = '#e0f2fe';
+            statusBadge.style.color = '#0369a1';
+        }
+    }
+
+    const adminSec = ntw.admin_sections !== undefined ? Number(ntw.admin_sections).toFixed(1) : '0.0';
+    const resSec = ntw.research_sections !== undefined ? Number(ntw.research_sections).toFixed(1) : '0.0';
+    const labSec = ntw.labops_sections !== undefined ? Number(ntw.labops_sections).toFixed(1) : '0.0';
+    const grossSec = ntw.gross_burden_sections !== undefined ? Number(ntw.gross_burden_sections).toFixed(1) : (dept.total_sections || 0).toFixed(1);
+
+    setTextSafe('deptSecEquivAdmin', `+${adminSec} secs`);
+    setTextSafe('deptSecEquivResearch', `+${resSec} secs`);
+    setTextSafe('deptSecEquivLabOps', `+${labSec} secs`);
+    setTextSafe('deptGrossBurden', `${grossSec} gross secs`);
+
     // Render Major Pipeline Chart
     try {
         renderPipelineChart(dept.class_pipeline || {});
