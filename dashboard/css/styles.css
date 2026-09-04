@@ -198,6 +198,20 @@ th {
     white-space: nowrap;
 }
 th:hover { background: #f1f5f9; }
+th.sortable { cursor: pointer; user-select: none; }
+th.sortable:hover { background: #e2e8f0; color: var(--primary); }
+.sort-icon {
+    font-size: 11px;
+    margin-left: 4px;
+    opacity: 0.4;
+    display: inline-block;
+}
+th.sorted-desc .sort-icon,
+th.sorted-asc .sort-icon {
+    opacity: 1;
+    color: var(--primary);
+    font-weight: bold;
+}
 td { padding: 9px 12px; border-bottom: 1px solid var(--border); }
 tr:hover td { background: #f8fafc; }
 .num { text-align: right; font-variant-numeric: tabular-nums; }

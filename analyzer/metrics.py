@@ -156,9 +156,9 @@ class MetricsEngine:
 
         inst_primary_dept = {}
         for inst, idata in instructors_data.items():
-            # Check official roster override first!
+            # Check official roster override first (ESIS has no faculty lines)
             roster_entry = self.roster_manager.get_entry(inst) if self.roster_manager else None
-            if roster_entry and roster_entry.department_code in self.dept_mappings:
+            if roster_entry and roster_entry.department_code in self.dept_mappings and roster_entry.department_code != 'ESIS':
                 pdept = roster_entry.department_code
                 inst_primary_dept[inst] = pdept
                 idata['primary_dept'] = pdept
@@ -172,7 +172,7 @@ class MetricsEngine:
                 if dept_candidates:
                     candidate_subjs = dept_candidates
                 else:
-                    candidate_subjs = [s for s in idata['by_subject'].keys() if s in eng_subjs]
+                    candidate_subjs = [s for s in idata['by_subject'].keys() if s not in {'ENGR', 'INTERDIS'}]
                     if not candidate_subjs:
                         candidate_subjs = list(idata['by_subject'].keys())
 
@@ -183,7 +183,7 @@ class MetricsEngine:
                 )
                 pdept = 'OTHER'
                 for dcode, subjs in self.dept_mappings.items():
-                    if best_subj in subjs:
+                    if best_subj in subjs and dcode != 'ESIS':
                         pdept = dcode
                         break
                 inst_primary_dept[inst] = pdept
@@ -251,17 +251,15 @@ class MetricsEngine:
                     continue
 
                 norm_adv_list = parse_instructor_names(adv_raw)
-                raw_adv = norm_adv_list[0] if norm_adv_list else adv_raw.strip()
-                norm_adv = self.name_resolver.resolve(raw_adv)
-
-                is_dept_advisor = (
-                    norm_adv in dept_faculty or
-                    inst_primary_dept.get(norm_adv) == dept_code or
-                    (self.roster_manager and self.roster_manager.get_entry(norm_adv) and self.roster_manager.get_entry(norm_adv).department_code == dept_code)
-                )
-
-                if is_dept_major or is_dept_advisor:
-                    advisee_counts[norm_adv] += 1
+                for raw_adv in norm_adv_list:
+                    norm_adv = self.name_resolver.resolve(raw_adv)
+                    is_dept_advisor = (
+                        norm_adv in dept_faculty or
+                        inst_primary_dept.get(norm_adv) == dept_code or
+                        (self.roster_manager and self.roster_manager.get_entry(norm_adv) and self.roster_manager.get_entry(norm_adv).department_code == dept_code)
+                    )
+                    if is_dept_major or is_dept_advisor:
+                        advisee_counts[norm_adv] += 1
 
             adv_loads = list(advisee_counts.values())
             adv_stats = calc_stats(adv_loads)
@@ -441,6 +439,18 @@ class MetricsEngine:
             'overall_sub10_pct': round((len(overall_sub10) / len(active_sections) * 100), 1) if active_sections else 0.0
         }
 
+        # Compute institutional advisees count per instructor
+        advisees_per_inst = Counter()
+        for cid, c in self.cadets.items():
+            adv_raw = c.advisor
+            if not adv_raw:
+                continue
+            norm_adv_list = parse_instructor_names(adv_raw)
+            for raw_adv in norm_adv_list:
+                norm_adv = self.name_resolver.resolve(raw_adv)
+                if norm_adv:
+                    advisees_per_inst[norm_adv] += 1
+
         # 7. Faculty Directory Summary
         faculty_directory = []
         for inst, idata in sorted(instructors_data.items()):
@@ -464,6 +474,7 @@ class MetricsEngine:
                 'courses_taught': sorted(list(idata['courses'])),
                 'weighted_sections': sec_alloc,
                 'cadet_load_allocated': stu_alloc,
+                'advisees_count': advisees_per_inst.get(inst, 0),
                 'total_cadet_seats': idata['total_cadet_seats'],
                 'unique_cadets': len(idata['unique_cadets']),
                 'avg_section_size': avg_sz,

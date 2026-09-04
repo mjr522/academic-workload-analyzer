@@ -322,18 +322,22 @@
             <!-- Department Faculty Table -->
             <div class="card">
                 <div class="card-header">
-                    <div class="card-title">Department Assigned Faculty</div>
+                    <div>
+                        <div class="card-title">Department Assigned Faculty</div>
+                        <div class="card-desc">Instructors assigned to this department. Click any column header to sort highest to lowest or reverse.</div>
+                    </div>
                 </div>
                 <div class="scroll-wrapper">
-                    <table>
+                    <table id="deptFacultyTable">
                         <thead>
                             <tr>
-                                <th>Instructor Name</th>
-                                <th>Primary Department</th>
-                                <th class="num">Weighted Sections</th>
-                                <th class="num">Cadet Contact Load</th>
-                                <th class="num">Total Seats</th>
-                                <th class="num">Avg Class Size</th>
+                                <th class="sortable" onclick="sortDeptFacultyTable('instructor')">Instructor Name <span class="sort-icon" id="th-sort-instructor">↕</span></th>
+                                <th class="sortable" onclick="sortDeptFacultyTable('primary_dept')">Primary Department <span class="sort-icon" id="th-sort-primary_dept">↕</span></th>
+                                <th class="num sortable" onclick="sortDeptFacultyTable('weighted_sections')">Weighted Sections <span class="sort-icon" id="th-sort-weighted_sections">↕</span></th>
+                                <th class="num sortable" onclick="sortDeptFacultyTable('cadet_load_allocated')">Cadet Contact Load <span class="sort-icon" id="th-sort-cadet_load_allocated">↕</span></th>
+                                <th class="num sortable" onclick="sortDeptFacultyTable('advisees_count')"># of Advisees <span class="sort-icon" id="th-sort-advisees_count">↕</span></th>
+                                <th class="num sortable" onclick="sortDeptFacultyTable('total_cadet_seats')">Total Seats <span class="sort-icon" id="th-sort-total_cadet_seats">↕</span></th>
+                                <th class="num sortable" onclick="sortDeptFacultyTable('avg_section_size')">Avg Class Size <span class="sort-icon" id="th-sort-avg_section_size">↕</span></th>
                                 <th>Courses Taught</th>
                             </tr>
                         </thead>

@@ -73,7 +73,7 @@ class RosterGenerator:
                     'Assigned_Courses': courses_str,
                     'Weighted_Sections_Taught': secs,
                     'Cadet_Contact_Load': cadets,
-                    'Cadet_Advisees_Count': 0,  # Populated if mapped
+                    'Cadet_Advisees_Count': f.get('advisees_count', 0),
                     'Lab_Operations_FTE_Percent': '',
                     'Administration_FTE_Percent': '',
                     'Research_FTE_Percent': '',

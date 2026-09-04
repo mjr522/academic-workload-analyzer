@@ -124,23 +124,87 @@ function renderDepartmentDetails(deptCode) {
     }
 }
 
+let currentDeptFacultySort = { col: null, dir: 'desc' };
+let currentDeptFacultyCode = null;
+
+function sortDeptFacultyTable(colKey) {
+    if (currentDeptFacultySort.col === colKey) {
+        currentDeptFacultySort.dir = currentDeptFacultySort.dir === 'desc' ? 'asc' : 'desc';
+    } else {
+        currentDeptFacultySort.col = colKey;
+        currentDeptFacultySort.dir = 'desc'; // Highest to lowest on first click
+    }
+    if (currentDeptFacultyCode) {
+        renderDepartmentFacultyTable(currentDeptFacultyCode);
+    }
+}
+
+function updateSortIcons() {
+    const cols = ['instructor', 'primary_dept', 'weighted_sections', 'cadet_load_allocated', 'advisees_count', 'total_cadet_seats', 'avg_section_size'];
+    cols.forEach(c => {
+        const el = document.getElementById(`th-sort-${c}`);
+        const th = el ? el.closest('th') : null;
+        if (el) {
+            if (currentDeptFacultySort.col === c) {
+                el.textContent = currentDeptFacultySort.dir === 'desc' ? '▼' : '▲';
+                if (th) {
+                    th.classList.remove('sorted-desc', 'sorted-asc');
+                    th.classList.add(currentDeptFacultySort.dir === 'desc' ? 'sorted-desc' : 'sorted-asc');
+                }
+            } else {
+                el.textContent = '↕';
+                if (th) {
+                    th.classList.remove('sorted-desc', 'sorted-asc');
+                }
+            }
+        }
+    });
+}
+
 function renderDepartmentFacultyTable(deptCode) {
+    currentDeptFacultyCode = deptCode;
     const data = window.currentWorkloadData;
     const tbody = document.getElementById('deptFacultyTbody');
     if (!tbody || !data) return;
     tbody.innerHTML = '';
 
-    const dept = data.departments.find(d => d.dept_code === deptCode);
-    const subjs = dept ? (dept.subjects_included || []) : [];
+    updateSortIcons();
 
-    const faculty = data.faculty_directory.filter(f => 
-        f.primary_dept === deptCode || 
-        (f.subjects_taught && f.subjects_taught.some(s => subjs.includes(s)))
-    );
+    // Department Assigned Faculty strictly filters to faculty whose primary home is this department
+    let faculty = (data.faculty_directory || []).filter(f => f.primary_dept === deptCode);
 
     if (faculty.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:#64748b; padding:16px;">No faculty currently assigned or teaching courses in this department.</td></tr>';
+        if (deptCode === 'ESIS') {
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:#64748b; padding:20px;">' +
+                '<strong style="color:var(--primary);">No faculty lines organically assigned to ESIS (SINE Core Engineering).</strong><br>' +
+                '<span style="font-size:12px;">All core engineering courses (ENGR) are taught by instructors assigned to other academic departments.</span>' +
+                '</td></tr>';
+        } else {
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:#64748b; padding:16px;">No faculty currently assigned to this department.</td></tr>';
+        }
         return;
+    }
+
+    // Apply sorting
+    if (currentDeptFacultySort.col) {
+        const col = currentDeptFacultySort.col;
+        const dir = currentDeptFacultySort.dir;
+        faculty.sort((a, b) => {
+            let valA = a[col];
+            let valB = b[col];
+
+            // If numeric comparison
+            if (typeof valA === 'number' || typeof valB === 'number' || ['weighted_sections', 'cadet_load_allocated', 'advisees_count', 'total_cadet_seats', 'avg_section_size'].includes(col)) {
+                valA = Number(valA) || 0;
+                valB = Number(valB) || 0;
+                return dir === 'desc' ? (valB - valA) : (valA - valB);
+            }
+
+            // String comparison
+            valA = String(valA || '').toLowerCase();
+            valB = String(valB || '').toLowerCase();
+            return dir === 'desc' ? valB.localeCompare(valA) : valA.localeCompare(valB);
+        });
     }
 
     faculty.forEach((f, idx) => {
@@ -156,9 +220,10 @@ function renderDepartmentFacultyTable(deptCode) {
             <td>${deptBadge}</td>
             <td class="num"><strong>${f.weighted_sections}</strong></td>
             <td class="num"><strong>${f.cadet_load_allocated}</strong></td>
+            <td class="num" style="font-weight:700; color:#0369a1;">${f.advisees_count !== undefined ? f.advisees_count : 0}</td>
             <td class="num">${f.total_cadet_seats}</td>
             <td class="num">${f.avg_section_size}</td>
-            <td style="font-size: 11px; color:#64748b;">${f.courses_taught.join(', ')}</td>
+            <td style="font-size: 11px; color:#64748b;">${(f.courses_taught || []).join(', ')}</td>
         `;
         tbody.appendChild(tr);
     });

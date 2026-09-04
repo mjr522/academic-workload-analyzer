@@ -153,6 +153,53 @@ class TestMultiSchoolArchitecture(unittest.TestCase):
         self.assertEqual(len(results['faculty_directory']), 1)
         self.assertEqual(results['faculty_directory'][0]['instructor'], 'Civ, Alice')
 
+    def test_esis_engr_only_and_advisees_count(self):
+        """Verify ESIS only contains ENGR (not INTERDIS), no faculty assigned to ESIS, and advisee counts computed."""
+        from analyzer.config import DEFAULT_DEPARTMENT_MAPPINGS
+
+        # ESIS should only map to ENGR
+        self.assertEqual(DEFAULT_DEPARTMENT_MAPPINGS['ESIS'], ['ENGR'])
+
+        # Faculty teaching ENGR + MECHENGR
+        s_engr = SectionRecord(
+            file_source='test', term='2251', class_nbr='301', subject='ENGR',
+            course_number='201', course_title='Tech Skills', section_code='M1',
+            credit_units=3.0, instructors=['Engr, Instructor A'], cadet_ids={'C1', 'C2'},
+            section_weight=1.0, cadet_weight=1.0, weight_type='Full Semester', department='ESIS'
+        )
+        s_mech = SectionRecord(
+            file_source='test', term='2251', class_nbr='302', subject='MECHENGR',
+            course_number='101', course_title='Statics', section_code='T1',
+            credit_units=3.0, instructors=['Engr, Instructor A'], cadet_ids={'C1', 'C3'},
+            section_weight=1.0, cadet_weight=1.0, weight_type='Full Semester', department='ESME'
+        )
+        s_interdis = SectionRecord(
+            file_source='test', term='2251', class_nbr='303', subject='INTERDIS',
+            course_number='350', course_title='Adversary Doctrine', section_code='W1',
+            credit_units=3.0, instructors=['Interdis, Instructor B'], cadet_ids={'C4'},
+            section_weight=1.0, cadet_weight=1.0, weight_type='Full Semester', department='OTHER'
+        )
+
+        cadets = {
+            'C1': CadetRecord(cadet_id='C1', major1='Mechanical Engineering', class_year='2026', advisor='Engr, Instructor A'),
+            'C2': CadetRecord(cadet_id='C2', major1='Mechanical Engineering', class_year='2026', advisor='Engr, Instructor A'),
+            'C3': CadetRecord(cadet_id='C3', major1='Mechanical Engineering', class_year='2026', advisor='Engr, Instructor A'),
+        }
+
+        engine = MetricsEngine([s_engr, s_mech, s_interdis], cadets=cadets)
+        results = engine.compute_all_metrics()
+
+        # ESIS department should have 0 faculty assigned
+        esis_dept = [d for d in results['departments'] if d['dept_code'] == 'ESIS'][0]
+        self.assertEqual(esis_dept['faculty_count'], 0)
+        self.assertEqual(esis_dept['total_sections'], 1)  # Only ENGR 201, not INTERDIS
+
+        # Engr, Instructor A should be assigned to ESME, NOT ESIS
+        fac_a = [f for f in results['faculty_directory'] if f['instructor'] == 'Engr, Instructor A'][0]
+        self.assertEqual(fac_a['primary_dept'], 'ESME')
+        # Advisees count should be 3
+        self.assertEqual(fac_a['advisees_count'], 3)
+
 
 if __name__ == '__main__':
     unittest.main()

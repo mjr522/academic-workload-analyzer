@@ -52,7 +52,7 @@ DEFAULT_DEPARTMENT_MAPPINGS: Dict[str, List[str]] = {
     'ESCE': ['CIVENGR', 'CIVENG'],                        # Civil & Environmental Engineering
     'ESEC': ['ECE'],                                      # Electrical & Computer Engineering
     'ESAS': ['ASTRENGR', 'SPACE'],                        # Astronautics
-    'ESIS': ['ENGR', 'INTERDIS'],                         # SINE Core Engineering
+    'ESIS': ['ENGR'],                                     # SINE Core Engineering
 
     # --- School of Integrated Basic Sciences (SIBS) ---
     'BSBI': ['BIOLOGY'],                                  # Biology
@@ -141,7 +141,7 @@ DEPARTMENT_ALIASES: Dict[str, str] = {
     'DFCE': 'ESCE', 'ESCE': 'ESCE',
     'DFEC': 'ESEC', 'ESEC': 'ESEC',
     'DFAS': 'ESAS', 'ESAS': 'ESAS',
-    'DFIS': 'ESIS', 'ESIS': 'ESIS', 'INTERDIS': 'ESIS',
+    'DFIS': 'ESIS', 'ESIS': 'ESIS',
 
     # SIBS (supports both BSxx and SIxx alongside legacy DFxx)
     'DFBI': 'BSBI', 'SIBI': 'BSBI', 'BSBI': 'BSBI',

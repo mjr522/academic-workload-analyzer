@@ -81,6 +81,7 @@ function openFacultyModal(instName) {
         <strong>Tier:</strong> <span class="badge" style="background:#e0f2fe; color:#0369a1;">${f.expected_tier || 'Line_Faculty'}</span> &nbsp;|&nbsp;
         <strong>Actual Secs:</strong> ${f.weighted_sections} (Expected: ${f.expected_sections || 3.0}) &nbsp;|&nbsp;
         <strong>Cadet Load:</strong> ${f.cadet_load_allocated} &nbsp;|&nbsp;
+        <strong>Advisees:</strong> ${f.advisees_count !== undefined ? f.advisees_count : 0} &nbsp;|&nbsp;
         <strong>Avg Class Size:</strong> ${f.avg_section_size}
     `;
 
