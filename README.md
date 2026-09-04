@@ -1,103 +1,203 @@
-# Academic Workload & Department Resourcing Architecture
+# USAFA Academic Workload & Department Resourcing Platform
 
-A decoupled, local-first analytics and visualization platform built for the **School of Integrated Engineering**. 
+A decoupled, local-first analytics and visual intelligence platform designed for the **United States Air Force Academy (USAFA) Academic Division**, covering all three academic schools: **SINE** (School of Integrated Engineering Sciences), **SIBS** (School of Integrated Basic Sciences), and **HASS** (School of Integrated Humanities, Arts, & Social Sciences).
 
-This platform empowers school leadership and department heads to analyze course preparation burdens, student contact hours, elective fragmentation, and academic advising loads—while enabling interactive **"What-If" staffing simulation** and pre-populated **Department Starter Rosters**.
-
----
-
-## Key Architecture & Privacy Guardrails
-
-1. **100% Local / Air-Gapped Privacy**:
-   * The web dashboard runs entirely in client browser memory via the HTML5 `FileReader` API.
-   * **No personnel data, names, or cadet records are ever uploaded to any cloud server.**
-   * Can be hosted on GitHub Pages as static files (`index.html`, `styles.css`, `app.js`) while all institutional data stays strictly local.
-2. **Decoupled Architecture**:
-   * **Python Engine (`analyzer/`)**: Ingests raw registrar CSVs, executes $1/k$ co-teaching splits, applies duration weights, rolls programs into official departments (`DFEM`, `DFCS`, `DFAN`, `DFCE`, `DFEC`, `DFAS`), and outputs standard JSON.
-   * **Web Dashboard (`dashboard/`)**: A modern, tabbed browser interface (zero Python dependencies) that renders executive quadrant matrices, department drilldowns, and what-if sandboxes.
-3. **Multi-Facet Extensibility (The "Boulder" Model)**:
-   * Structured to measure all facets of faculty load: **Teaching**, **Administration**, **Research**, **Lab Operations**, and **Cadet Service**.
+This platform empowers Academy senior leadership, school directors, and department heads to objectively evaluate instructional workloads, student contact burdens, academic advising distributions, small section proliferation, and curriculum capacity—supported by interactive **"What-If" staffing simulation** and pre-populated **Department Starter Rosters**.
 
 ---
 
-## Directory Structure
+## 🌐 Live Web Dashboard
 
-```
-├── analyzer/                      # Python Analytical Engine
-│   ├── config.py                  # Department mappings & course weighting rules
-│   ├── parser.py                  # Ingestion, regex name normalization, duration weights
-│   ├── metrics.py                 # SCH, 1/k attribution, class pipeline, sub-10 tracking
-│   ├── roster_generator.py        # Generates pre-populated Department Starter Rosters
-│   └── export_engine.py           # Standardized JSON data contract exporter
-│
-├── dashboard/                     # Static Web Application
-│   ├── index.html                 # Modern tabbed dashboard
-│   ├── css/styles.css             # Executive stylesheet
-│   ├── js/
-│   │   ├── app.js                 # State, local file loader, privacy toggle, tab router
-│   │   ├── charts.js              # 2x2 Matrix & SCH ranking visualizations
-│   │   ├── department_view.js     # Department drilldowns & majors pipeline
-│   │   ├── curriculum_view.js     # Sub-10 section audit & capstone fragmentation
-│   │   ├── faculty_view.js        # Faculty directory & drilldown modal
-│   │   └── whatif_sandbox.js      # Live staffing recalculation & scenario export
-│   └── data/
-│       └── template_schema.json   # Anonymized sample data template
-│
-├── rosters/                       # Generated Department Starter Rosters
-├── tests/                         # Verification & Math Unit Tests
-├── main.py                        # CLI Entry Point
-└── build_presentation.py          # Executive PowerPoint Deck Generator
-```
+The web dashboard is hosted live on GitHub Pages with zero installation required:
+
+👉 **[https://mjr522.github.io/academic-workload-analyzer/](https://mjr522.github.io/academic-workload-analyzer/)**
+
+* **No GitHub account or login required.**
+* Works in all modern browsers (Microsoft Edge, Google Chrome, Safari, Firefox).
+* Double-clicking `dashboard/index.html` locally also works 100% offline.
 
 ---
 
-## Quick Start Guide
+## 🛡️ Privacy-First & Air-Gapped Architecture
 
-### 1. Ingest Enrollment Data & Compute Metrics
-Run the Python engine on your enrollment CSVs:
+Educational and personnel data at USAFA are subject to strict privacy guardrails (FERPA / CUI). This platform was deliberately engineered with an **air-gapped, zero-trust privacy model**:
+
+1. **Client-Side Only Execution**:
+   * The web application runs entirely in local browser memory using the HTML5 `FileReader` API.
+   * **No personnel data, instructor names, or cadet records are ever uploaded to any web server or cloud storage.**
+2. **Strict Git Safeguards**:
+   * All raw enrollment spreadsheets (`*.csv`), local data exports (`*data*.json`), and department rosters (`rosters/*.csv`) are blocked by `.gitignore`.
+   * Only open-source code and an anonymized synthetic data template (`template_schema.json`) reside in GitHub.
+3. **Seamless Sharing with Leadership**:
+   * You can simply email the generated `workload_data.json` file to your boss or colleagues.
+   * Recipients visit the public dashboard URL and load the file locally—all data processing, charting, and calculations take place exclusively on their local computer.
+
+---
+
+## 🚀 Leadership Quick-Start Guide
+
+### Step 1: Open the Dashboard
+Navigate to **`https://mjr522.github.io/academic-workload-analyzer/`** in your browser.
+
+### Step 2: Load Your Workload Dataset
+* **Option A**: Drag and drop the `workload_data.json` file anywhere onto the browser window.
+* **Option B**: Click **"📁 Load Local Data JSON"** in the top header and select the file.
+* Once loaded, the green confirmation badge will appear and all views will immediately populate.
+
+### Step 3: Explore the Analytical Panes
+
+#### 📊 1. Executive Overview
+* **Academic School Scope Selector**: Filter metrics for **All Schools (USAFA Division)** or drill into **SINE**, **SIBS**, or **HASS**.
+* **2×2 Resourcing Matrix (Quadrant Scatter Plot)**:
+  * **X-Axis**: Course Prep Load (Weighted Sections per Instructor).
+  * **Y-Axis**: Student Contact Load (Cadet seats per Instructor).
+  * **Bubble Size**: Total cadet enrollment volume.
+  * *Note*: Core Engineering (`ESIS`) is excluded from the scatter plot to prevent skewing benchmark averages.
+* **Student Credit Hours (SCH) Ranking**: Comparative bar chart of credit hours delivered across schools and departments against institutional benchmarks.
+* **Faculty & Majors Distribution**: Donut charts showing instructional lines and declared cadet majors.
+* **Small Section Audit**: Tracking sections with $\le 10$ cadets across departments.
+
+#### 🏢 2. Department Drilldown
+* **Department Selector**: Dropdown organized by School (`SINE`, `SIBS`, `HASS`) to inspect any of the 21 academic departments.
+* **Department Vitals**: Unique courses, active sections, enrolled cadet seats, Student Credit Hours, declared majors, and sub-10 section counts.
+* **Major Pipeline by Class Year**: Stacked charts tracking declared cadet majors from Fourth-Class (Freshman) through First-Class (Senior) years.
+* **Section Size Distribution**: Histogram showing class enrollment distribution.
+* **Billet Status & Staffing Health**: Authorized vs. vacant billets, military vs. civilian filled lines, and MOA courtesy adjuncts.
+* **Advising & Course Levels**: Total advisees, active advisors, average advisees per advisor, and seat distribution across 100-, 200-, 300-, and 400-level courses.
+* **Department Assigned Faculty Table**:
+  * Lists instructors assigned to the department with weighted sections, contact load, total seats, average class size, and courses taught.
+  * **# of Advisees Column**: Shows official cadet advising assignments for each faculty member.
+  * **Two-Way Column Sorting**: Click any header once to sort highest-to-lowest (descending); click again to reverse (ascending).
+* **Department Course Offerings & Sections Table**:
+  * Displays every active course offering, section code (e.g. `M1A`, `T2B`), term, enrolled section size, credit units, and assigned instructors.
+  * **Interactive Search**: Filter sections in real time by course code, title, section, term, or instructor name.
+  * **Clickable Faculty Profiles**: Clicking any instructor name opens their complete Workload Profile modal.
+  * **Enrollment Badges**: Highlights low-enrollment sections (`≤ 10 Cadets`) in amber and senior capstone courses (`Capstone`).
+
+#### 📚 3. Curriculum & Capstones
+* Comprehensive audit of small section proliferation ($\le 10$ cadets) and multi-section senior design capstone fragmentation across academic departments.
+
+#### 👥 4. Faculty Directory
+* Master institutional roster of deduplicated instructors with school, primary department, billet tier, actual vs. expected sections, delta indicators, contact load, and advisee counts.
+* Click any instructor to view their individual **Teaching Assignment Breakdown**.
+
+#### ⚙️ 5. "What-If" Scenario Sandbox
+* Live staffing simulator enabling leadership to model billet changes, faculty promotions, role adjustments, and department transfers.
+* Click **"⚡ Recalculate Scenario Live"** to instantly project the impact on department teaching ratios.
+* Click **"💾 Export Scenario JSON"** to save proposal data packages.
+
+#### 👁️ Privacy Name Masking
+* Click **"👁️ Names Visible / 🔒 Names Masked"** in the top header to instantly replace instructor names with anonymous tokens (`Faculty 01`, `Faculty 02`) for broad briefings and presentations.
+
+---
+
+## 🏛️ USAFA Institutional Structure & Mappings
+
+The platform maps all academic subjects and majors across USAFA's three academic schools and 21 departments:
+
+| School | Dept Code | Department Name | Included Disciplines & Subjects |
+| :--- | :--- | :--- | :--- |
+| **SINE** | `ESME` | Mechanical Engineering | `MECHENGR`, `SYSENGR` |
+| **SINE** | `ESCS` | Computer Science | `COMPSCI`, `CYBERSCI` |
+| **SINE** | `ESAN` | Aeronautics | `AEROENGR` |
+| **SINE** | `ESCE` | Civil & Environmental Engineering | `CIVENGR`, `CIVENG` |
+| **SINE** | `ESECE` | Electrical & Computer Engineering | `ECE` |
+| **SINE** | `ESAS` | Astronautics | `ASTRENGR`, `SPACE` |
+| **SINE** | `ESIS` | SINE Core Engineering *(Interdisciplinary)* | `ENGR` *(Taught by cross-department faculty)* |
+| **SIBS** | `BSBI` | Biology | `BIOLOGY` |
+| **SIBS** | `BSCH` | Chemistry | `CHEM` |
+| **SIBS** | `BSMS` | Mathematical Sciences | `MATH`, `DATASCI`, `OPSRSCH` |
+| **SIBS** | `BSPM` | Physics & Meteorology | `PHYSICS`, `METEOR` |
+| **HASS** | `HSBL` | Behavioral Sciences & Leadership | `BEHSCI`, `LDRSHP` |
+| **HASS** | `HSEG` | Economics & Geosciences | `ECON`, `GEO` |
+| **HASS** | `HSEN` | English & Fine Arts | `ENGLISH`, `CREATART`, `EAP`, `COMMSTRT`, `LRNSTRT` |
+| **HASS** | `HSHI` | History | `HISTORY` |
+| **HASS** | `HSLA` | Law | `LAW` |
+| **HASS** | `HSLC` | Foreign Languages & Cultures | `ARABIC`, `CHINESE`, `FRENCH`, `GERMAN`, `JAPANESE`, `PORTUGSE`, `RUSSIAN`, `SPANISH`, `FORARSTU` |
+| **HASS** | `HSMA` | Management | `MGT` |
+| **HASS** | `HSMI` | Military & Strategic Studies | `MSS` |
+| **HASS** | `HSPS` | Political Science | `POLSCI`, `SOCSCI` |
+| **HASS** | `HSPY` | Philosophy | `PHILOS` |
+
+> **Note on Commissioning Education (CE)**: Non-academic commissioning courses (`CE`) are automatically excluded as they are not administered by the Academic Division.
+
+---
+
+## ⚙️ Analytical Methodology & Attribution Formulas
+
+1. **Faculty Name Resolution & Deduplication**:
+   * Uses regex normalization to strip suffixes (`Jr.`, `Sr.`, `II`, `III`), remove middle names/initials, and match names against the official Faculty Directory to resolve disparate campus records to single canonical instructors.
+2. **Co-Teaching Split ($1/k$ Attribution)**:
+   * When a course section is team-taught by $k$ co-instructors, credit and contact load are divided equally:
+     * Section Share = $(1 / k) 	imes 	ext{Duration Weight}$
+     * Cadet Contact Share = $(	ext{Enrolled Cadets} / k) 	imes 	ext{Duration Weight}$
+3. **Course Duration Weighting**:
+   * Full semester courses: weight = $1.0$
+   * Quarter / half-semester courses: weight = $0.5$
+4. **Student Credit Hours (SCH)**:
+   * $	ext{SCH} = 	ext{Enrolled Cadets} 	imes 	ext{Credit Units}$
+5. **Academic Advising Load**:
+   * Aggregates cadet advisor assignments, resolves co-advisors, and pairs advisee counts directly with teaching profiles.
+
+---
+
+## 💻 Python CLI Usage (Data Generation)
+
+To process registrar enrollment files and generate the web dashboard JSON and department rosters:
 
 ```bash
-# Ingest single or multiple semester files
+# Process enrollment files across semesters
 python main.py "Teaching_Load_*.csv"
 
-# Ingest without generating starter rosters
-python main.py "Teaching Load over Time no names.csv" --no-rosters
+# Process without generating starter rosters
+python main.py "Teaching_Load_*.csv" --no-rosters
 ```
 
-This will:
-* Clean instructor names and apply $1/k$ co-teaching splits.
-* Combine academic disciplines into official departments (`DFEM` = Mech + Systems; `DFCS` = CS + Cyber).
-* Compute Student Credit Hours (SCH), section size distributions, and flag sections $\le 10$ cadets.
-* Export `dashboard/data/workload_data.json`.
-* Generate pre-populated Starter Rosters in `rosters/` for each Department Head.
-
-### 2. Launch the Interactive Dashboard
-Double-click [`dashboard/index.html`](dashboard/index.html) to open it in any web browser (Chrome, Edge, Firefox, Safari).
-* **Load Local Data**: Click **"📁 Load Local Data JSON"** and select any `workload_data.json` file.
-* **Privacy Toggle**: Click **"👁️ Names Visible / 🔒 Names Masked"** to instantly sanitize instructor names for wider leadership briefings.
-* **"What-If" Sandbox**: Simulate faculty role promotions or department transfers, click **"⚡ Recalculate Scenario Live"**, and click **"💾 Export Scenario JSON"** to save your proposal.
+### Outputs Generated:
+* `dashboard/data/workload_data.json`: Comprehensive data contract powering the web dashboard.
+* `rosters/starter_roster_[DEPT].csv`: 21 pre-populated roster CSV templates for Department Heads containing assigned instructors, actual teaching sections, contact loads, and cadet advisees.
 
 ---
 
-## Department Structure Mapping
+## 🧪 Verification & Test Suite
 
-| Department Code | Department Name | Included Subjects / Programs |
-| :--- | :--- | :--- |
-| **`DFEM`** | Mechanical Engineering | `MECHENGR`, `SYSENGR` |
-| **`DFCS`** | Computer Science | `COMPSCI`, `CYBERSCI` |
-| **`DFAN`** | Aeronautics | `AEROENGR` |
-| **`DFCE`** | Civil & Environmental Engineering | `CIVENGR` |
-| **`DFEC`** | Electrical & Computer Engineering | `ECE` |
-| **`DFAS`** | Astronautics | `ASTRENGR` |
-| **`INTERDIS`**| Interdisciplinary Programs | `ENGR`, `DATASCI` |
-
----
-
-## Running Verification Tests
-
-Run the test suite to verify mathematical attribution and parser integrity:
+Run the automated regression test suite:
 
 ```bash
-python tests/test_parser.py
-python tests/test_statistics.py
+python -m unittest discover -s tests
+```
+
+*All 10 unit tests verify school metadata, department aliasing, name resolution, advisee attribution, duration weighting, and mathematical metrics aggregation.*
+
+---
+
+## 📁 Repository Structure
+
+```
+├── .github/workflows/deploy-pages.yml  # Automated GitHub Actions Pages deployment
+├── index.html                         # Root redirect to dashboard/
+├── analyzer/                          # Python Analytical Engine
+│   ├── config.py                      # School & Department metadata, rules, and mappings
+│   ├── parser.py                      # CSV ingestion, name cleaning, duration weights
+│   ├── metrics.py                     # SCH, 1/k attribution, pipeline, advising metrics
+│   ├── name_resolver.py               # Canonical instructor deduplication engine
+│   ├── roster_manager.py              # Department starter roster reconciliation
+│   ├── roster_generator.py            # Department starter roster CSV exporter
+│   └── export_engine.py               # Standardized JSON data contract exporter
+├── dashboard/                         # Web Application (Client-Side HTML/JS/CSS)
+│   ├── index.html                     # Tabbed analytical executive dashboard
+│   ├── css/styles.css                 # USAFA executive design stylesheet
+│   ├── js/
+│   │   ├── app.js                     # State controller, file loader, drag-and-drop
+│   │   ├── charts.js                  # 2x2 Matrix, SCH ranking, and distribution charts
+│   │   ├── department_view.js         # Department drilldown, vitals, faculty & course tables
+│   │   ├── curriculum_view.js         # Small section and capstone audit controller
+│   │   ├── faculty_view.js            # Faculty directory and workload modal controller
+│   │   └── whatif_sandbox.js          # Live staffing simulation recalculator
+│   └── data/
+│       └── template_schema.json       # Anonymized synthetic sample data schema
+├── rosters/                           # Generated Department Starter Roster CSVs
+├── tests/                             # Automated regression unit tests
+├── main.py                            # CLI entry point
+└── build_presentation.py              # Executive PowerPoint deck generator
 ```
