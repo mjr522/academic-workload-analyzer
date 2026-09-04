@@ -26,6 +26,25 @@
             </div>
         </header>
 
+        <!-- No-Data Guidance Banner (Shown when no dataset is loaded yet) -->
+        <div id="noDataAlert" class="card" style="display:none; background:#eff6ff; border:1px solid #bfdbfe; padding:16px 20px; margin-bottom:20px; border-radius:8px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:14px;">
+                <div style="display:flex; align-items:center; gap:14px;">
+                    <span style="font-size:28px;">📂</span>
+                    <div>
+                        <div style="color:var(--primary); font-size:15px; font-weight:700;">Ready to Load Academic Workload Data</div>
+                        <div style="font-size:13px; color:var(--text-muted); margin-top:3px;">
+                            Click <strong>"📁 Load Local Data JSON"</strong> in the top header or drag & drop your <code>workload_data.json</code> file anywhere on this window.
+                            <span style="color:#0369a1; font-weight:600;">All data is processed 100% privately in your local browser memory.</span>
+                        </div>
+                    </div>
+                </div>
+                <button onclick="document.getElementById('jsonFileInput').click()" style="background:var(--primary); color:#fff; border:none; padding:8px 18px; border-radius:6px; font-weight:600; font-size:13px; cursor:pointer;">
+                    Select JSON File
+                </button>
+            </div>
+        </div>
+
         <!-- KPI Banner -->
         <div class="kpi-grid">
             <div class="kpi-card">

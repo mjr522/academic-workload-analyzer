@@ -36,33 +36,32 @@ function tryAutoLoadData() {
         })
         .catch(err => {
             console.log("No auto-load data found or failed to fetch:", err.message);
+            const alertEl = document.getElementById('noDataAlert');
+            if (alertEl) alertEl.style.display = 'block';
         });
 }
 
 function setupFileDropZone() {
-    const dropZone = document.getElementById('dropZone');
-    if (!dropZone) return;
-
     ['dragenter', 'dragover'].forEach(eventName => {
-        dropZone.addEventListener(eventName, (e) => {
+        window.addEventListener(eventName, (e) => {
             e.preventDefault();
             e.stopPropagation();
-            dropZone.classList.add('dragover');
+            document.body.classList.add('dragover');
         }, false);
     });
 
     ['dragleave', 'drop'].forEach(eventName => {
-        dropZone.addEventListener(eventName, (e) => {
+        window.addEventListener(eventName, (e) => {
             e.preventDefault();
             e.stopPropagation();
-            dropZone.classList.remove('dragover');
+            document.body.classList.remove('dragover');
         }, false);
     });
 
-    dropZone.addEventListener('drop', (e) => {
+    window.addEventListener('drop', (e) => {
         const dt = e.dataTransfer;
-        const files = dt.files;
-        if (files.length > 0) {
+        const files = dt ? dt.files : null;
+        if (files && files.length > 0) {
             processJsonFile(files[0]);
         }
     }, false);
@@ -101,6 +100,9 @@ function processJsonFile(file) {
 
 function loadDataset(data) {
     window.currentWorkloadData = data;
+
+    const alertEl = document.getElementById('noDataAlert');
+    if (alertEl) alertEl.style.display = 'none';
 
     // Determine active school scope from selector
     const scopeSelect = document.getElementById('schoolScopeSelect');
