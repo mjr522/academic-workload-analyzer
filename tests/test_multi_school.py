@@ -123,6 +123,36 @@ class TestMultiSchoolArchitecture(unittest.TestCase):
         self.assertEqual(schools_map['HASS']['total_sections'], 1)
         self.assertEqual(schools_map['HASS']['total_cadet_seats'], 4)
 
+    def test_ce_commissioning_education_excluded(self):
+        """Verify CE is recognized as Commissioning Education (excluded) and ESCE maps to CIVENGR."""
+        from analyzer.config import DEFAULT_EXCLUDED_SUBJECTS, DEFAULT_DEPARTMENT_MAPPINGS
+
+        self.assertIn('CE', DEFAULT_EXCLUDED_SUBJECTS)
+        self.assertIn('CIVENGR', DEFAULT_DEPARTMENT_MAPPINGS['ESCE'])
+        self.assertNotIn('CE', DEFAULT_DEPARTMENT_MAPPINGS['ESCE'])
+
+        # Test MetricsEngine filtering
+        s_civ = SectionRecord(
+            file_source='test', term='2251', class_nbr='201', subject='CIVENGR',
+            course_number='101', course_title='Civil Engr', section_code='M1',
+            credit_units=3.0, instructors=['Civ, Alice'], cadet_ids={'C1', 'C2'},
+            section_weight=1.0, cadet_weight=1.0, weight_type='Full Semester', department='ESCE'
+        )
+        s_ce = SectionRecord(
+            file_source='test', term='2251', class_nbr='202', subject='CE',
+            course_number='100', course_title='Commiss Ed For Inter Ldrsh', section_code='T1',
+            credit_units=0.0, instructors=['Officer, Bob'], cadet_ids={'C3', 'C4'},
+            section_weight=1.0, cadet_weight=1.0, weight_type='Full Semester', department='OTHER'
+        )
+
+        engine = MetricsEngine([s_civ, s_ce], cadets={})
+        results = engine.compute_all_metrics()
+
+        # Only CIVENGR section should be retained
+        self.assertEqual(results['institution_kpis']['total_sections'], 1)
+        self.assertEqual(len(results['faculty_directory']), 1)
+        self.assertEqual(results['faculty_directory'][0]['instructor'], 'Civ, Alice')
+
 
 if __name__ == '__main__':
     unittest.main()

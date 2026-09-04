@@ -49,7 +49,7 @@ DEFAULT_DEPARTMENT_MAPPINGS: Dict[str, List[str]] = {
     'ESME': ['MECHENGR', 'SYSENGR'],                     # Mechanical Engineering
     'ESCS': ['COMPSCI', 'CYBERSCI'],                      # Computer Science
     'ESAN': ['AEROENGR'],                                 # Aeronautics
-    'ESCE': ['CIVENGR', 'CE'],                            # Civil & Environmental Engineering
+    'ESCE': ['CIVENGR', 'CIVENG'],                        # Civil & Environmental Engineering
     'ESEC': ['ECE'],                                      # Electrical & Computer Engineering
     'ESAS': ['ASTRENGR', 'SPACE'],                        # Astronautics
     'ESIS': ['ENGR', 'INTERDIS'],                         # SINE Core Engineering
@@ -170,11 +170,11 @@ for dept, subjs in DEFAULT_DEPARTMENT_MAPPINGS.items():
 
 # Non-academic subjects filtered out by default
 DEFAULT_EXCLUDED_SUBJECTS: Set[str] = {
-    'PHYED', 'ARMNSHP', 'ARMSHP', 'AVIATION', 'EXTPROG'
+    'PHYED', 'ARMNSHP', 'ARMSHP', 'AVIATION', 'EXTPROG', 'CE'
 }
 
 DEFAULT_ENGINEERING_SUBJECTS: Set[str] = {
-    'AEROENGR', 'ASTRENGR', 'CIVENGR', 'CE', 'COMPSCI', 'CYBERSCI',
+    'AEROENGR', 'ASTRENGR', 'CIVENGR', 'COMPSCI', 'CYBERSCI',
     'ECE', 'ENGR', 'MECHENGR', 'SYSENGR', 'SPACE'
 }
 
