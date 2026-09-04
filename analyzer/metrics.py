@@ -189,17 +189,6 @@ class MetricsEngine:
                 inst_primary_dept[inst] = pdept
                 idata['primary_dept'] = pdept
 
-        # Ingest any faculty on the official roster who had 0 teaching load this term
-        if self.roster_manager:
-            for r_name, r_entry in self.roster_manager.roster.items():
-                canon_r = self.name_resolver.resolve(r_name)
-                if canon_r not in instructors_data and r_entry.department_code in self.dept_mappings:
-                    inst_primary_dept[canon_r] = r_entry.department_code
-                    instructors_data[canon_r]['name'] = canon_r
-                    instructors_data[canon_r]['primary_dept'] = r_entry.department_code
-                    instructors_data[canon_r]['billet_status'] = r_entry.billet_status
-                    instructors_data[canon_r]['expected_tier'] = r_entry.expected_tier
-                    instructors_data[canon_r]['expected_sections'] = r_entry.expected_sections
 
         # 4. Department Summaries
         dept_summaries = []

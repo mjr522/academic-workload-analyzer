@@ -106,5 +106,42 @@ class TestCanonicalNameResolver(unittest.TestCase):
         self.assertEqual(doe['weighted_sections'], 2.0)
         self.assertEqual(doe['cadet_load_allocated'], 4.0)
 
+    def test_non_teaching_roster_faculty_eliminated(self):
+        """Verify faculty present in official roster but teaching 0 sections are excluded."""
+        s1 = SectionRecord(
+            file_source='test', term='2251', class_nbr='101', subject='MECHENG',
+            course_number='101', course_title='Statics', section_code='M1',
+            credit_units=3.0, instructors=['Doe, Jane B'], cadet_ids={'C1', 'C2'},
+            section_weight=1.0, cadet_weight=1.0, weight_type='Full Semester'
+        )
+
+        roster_mgr = RosterManager()
+        # Active faculty teaching s1
+        roster_mgr.roster["Doe, Jane B"] = RosterEntry(
+            faculty_name="Doe, Jane B",
+            department_code="ESME"
+        )
+        # Inactive / former faculty in official roster with 0 teaching assignments
+        roster_mgr.roster["Ghost, Casper"] = RosterEntry(
+            faculty_name="Ghost, Casper",
+            department_code="ESME"
+        )
+        roster_mgr.roster["Retired, Professor"] = RosterEntry(
+            faculty_name="Retired, Professor",
+            department_code="ESME"
+        )
+
+        engine = MetricsEngine([s1], cadets={}, roster_manager=roster_mgr)
+        results = engine.compute_all_metrics()
+
+        # Ghost and Retired must NOT appear in faculty directory
+        fac_dir = results['faculty_directory']
+        self.assertEqual(len(fac_dir), 1)
+        self.assertEqual(fac_dir[0]['instructor'], "Doe, Jane B")
+
+        # Department faculty count must only reflect active teaching faculty
+        esme_dept = [d for d in results['departments'] if d['dept_code'] == 'ESME'][0]
+        self.assertEqual(esme_dept['faculty_count'], 1)
+
 if __name__ == '__main__':
     unittest.main()
