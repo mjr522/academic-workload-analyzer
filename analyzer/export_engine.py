@@ -31,6 +31,39 @@ class ExportEngine:
             payload['modes'] = self.metrics_data['modes']
         if 'default_mode' in self.metrics_data:
             payload['default_mode'] = self.metrics_data['default_mode']
+
+        # Package default institutional rules & tiers policy
+        from analyzer.config import (
+            CAPSTONE_COURSES, CROSS_LISTED_COURSES, TIER_EXPECTATIONS,
+            DEFAULT_EXCLUDED_SUBJECTS
+        )
+        all_subjects = sorted(list(set(
+            s['subject'] for s in self.metrics_data.get('sections_audit', [])
+            if s.get('subject')
+        )))
+        default_policy = {
+            'included_subjects': all_subjects,
+            'excluded_subjects': sorted(list(DEFAULT_EXCLUDED_SUBJECTS)),
+            'capstone_courses': sorted(list(set(c[1] for c in CAPSTONE_COURSES))),
+            'capstone_pairs': [{'subject': c[0], 'course_nbr': c[1]} for c in sorted(list(CAPSTONE_COURSES))],
+            'co_convened_pairs': [
+                [{'subject': pair[0][0], 'course_nbr': pair[0][1]}, {'subject': pair[1][0], 'course_nbr': pair[1][1]}]
+                for cluster in CROSS_LISTED_COURSES
+                for pair in [list(cluster)] if len(pair) == 2
+            ],
+            'sub10_threshold': 10,
+            'exclude_capstones': True,
+            'exclude_499s': True,
+            'tiers': {
+                'Line_Faculty': {'name': 'Line Faculty', 'expected_sections': 3.0, 'teaching_pct': 75.0, 'admin_pct': 10.0, 'research_pct': 10.0, 'labops_pct': 5.0},
+                'Course_Director': {'name': 'Course Director', 'expected_sections': 2.0, 'teaching_pct': 50.0, 'admin_pct': 35.0, 'research_pct': 10.0, 'labops_pct': 5.0},
+                'Dept_Head': {'name': 'Dept Head / Lab Dir', 'expected_sections': 1.0, 'teaching_pct': 25.0, 'admin_pct': 60.0, 'research_pct': 10.0, 'labops_pct': 5.0},
+                'Division_Chief': {'name': 'Division Chief', 'expected_sections': 1.0, 'teaching_pct': 25.0, 'admin_pct': 60.0, 'research_pct': 10.0, 'labops_pct': 5.0},
+                'Adjunct_Chair': {'name': 'Adjunct / Chair', 'expected_sections': 0.5, 'teaching_pct': 15.0, 'admin_pct': 70.0, 'research_pct': 10.0, 'labops_pct': 5.0},
+                'MOA_Courtesy': {'name': 'MOA / Courtesy', 'expected_sections': 0.0, 'teaching_pct': 0.0, 'admin_pct': 80.0, 'research_pct': 15.0, 'labops_pct': 5.0}
+            }
+        }
+        payload['default_policy'] = default_policy
         return payload
 
     def export_json(self, output_path: str) -> str:

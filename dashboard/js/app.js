@@ -128,6 +128,11 @@ function getActiveWorkloadData() {
     window.exclude499s = exclude499s;
     window.currentFacultyScope = currentFacultyScope;
 
+    // 1. Reactive Workbench Engine (Primary reactive source of truth)
+    if (window.workbenchState && window.workbenchState.activeCalculatedData) {
+        return window.workbenchState.activeCalculatedData;
+    }
+
     let modeKey = 'core';
     if (excludeCapstones && exclude499s) modeKey = 'core';
     else if (excludeCapstones && !exclude499s) modeKey = 'no_capstones';
@@ -405,12 +410,20 @@ function updateToggleButtonsUI() {
 
 function toggleCapstonesFilter() {
     excludeCapstones = !excludeCapstones;
+    if (window.workbenchState && window.workbenchState.policy) {
+        window.workbenchState.policy.excludeCapstones = excludeCapstones;
+        recomputeWorkbenchMetrics();
+    }
     updateToggleButtonsUI();
     refreshAllViews();
 }
 
 function toggle499sFilter() {
     exclude499s = !exclude499s;
+    if (window.workbenchState && window.workbenchState.policy) {
+        window.workbenchState.policy.exclude499s = exclude499s;
+        recomputeWorkbenchMetrics();
+    }
     updateToggleButtonsUI();
     refreshAllViews();
 }
@@ -434,6 +447,12 @@ function setFacultyScope(scope) {
 
 function loadDataset(data) {
     window.currentWorkloadData = data;
+
+    // Initialize Reactive Workbench State Engine
+    if (typeof initWorkbenchState === 'function') {
+        initWorkbenchState(data);
+    }
+
     updateToggleButtonsUI();
 
     const alertEl = document.getElementById('noDataAlert');
@@ -523,6 +542,8 @@ function refreshAllViews() {
         renderFacultyDirectory();
     } else if (currentActiveTab === 'tab-whatif') {
         renderWhatIfFacultyTable();
+    } else if (currentActiveTab === 'tab-admin') {
+        if (typeof renderAdminPolicyTab === 'function') renderAdminPolicyTab();
     }
 }
 
@@ -625,5 +646,7 @@ function switchTab(tabId) {
         renderFacultyDirectory();
     } else if (tabId === 'tab-whatif') {
         renderWhatIfFacultyTable();
+    } else if (tabId === 'tab-admin') {
+        if (typeof renderAdminPolicyTab === 'function') renderAdminPolicyTab();
     }
 }

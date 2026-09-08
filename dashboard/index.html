@@ -19,6 +19,7 @@
             <div class="header-controls">
                 <span id="dataLoadedBadge" class="badge badge-dept" style="display:none; padding:6px 10px; font-size:12px;"></span>
                 <button class="privacy-toggle-btn" id="privacyToggleBtn">👁️ Names Visible (Internal View)</button>
+                <button class="btn" style="background:#0f766e; color:#fff; border:none; display:flex; align-items:center; gap:6px; padding:6px 12px; font-size:12px;" onclick="exportFullSessionStateJSON()" title="Download complete calibrated session state (policy + rosters + workload data) into a single JSON file">💾 Full Session State (.json)</button>
                 <label class="file-drop-area" title="Load a local workload_data.json file (100% private, runs entirely inside your browser)">
                     📁 Load Local Data JSON
                     <input type="file" id="jsonFileInput" accept=".json" style="display:none;">
@@ -106,7 +107,8 @@
             <button class="nav-tab-btn" id="btn-tab-department" onclick="switchTab('tab-department')">🏢 Department Drilldown</button>
             <button class="nav-tab-btn" id="btn-tab-curriculum" onclick="switchTab('tab-curriculum')">📚 Curriculum & Capstones</button>
             <button class="nav-tab-btn" id="btn-tab-faculty" onclick="switchTab('tab-faculty')">👥 Faculty Directory</button>
-            <button class="nav-tab-btn whatif-btn" id="btn-tab-whatif" onclick="switchTab('tab-whatif')">⚙️ "What-If" Scenario Sandbox</button>
+            <button class="nav-tab-btn" id="btn-tab-admin" onclick="switchTab('tab-admin')">⚙️ Admin & Policy Configuration</button>
+            <button class="nav-tab-btn whatif-btn" id="btn-tab-whatif" onclick="switchTab('tab-whatif')">🧪 "What-If" Scenario Sandbox</button>
         </nav>
 
         <!-- ================================================================= -->
@@ -279,27 +281,39 @@
                 <div class="grid-3" style="margin-bottom: 20px;">
                     <!-- Card 1: Billet Status & Staffing Health -->
                     <div style="background:#f8fafc; border:1px solid var(--border); padding:14px; border-radius:8px;">
-                        <div style="font-size: 12px; font-weight: 700; color: var(--primary); text-transform: uppercase; margin-bottom: 10px;">Billet Status & Staffing Health</div>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 12px;">
-                            <div style="background:#fff; border:1px solid var(--border); padding:8px 10px; border-radius:6px;">
-                                <div style="font-size:10.5px; color:var(--text-muted); font-weight:700;">AUTHORIZED BILLETS</div>
-                                <div id="deptBilletAuth" style="font-size:18px; font-weight:700; color:var(--primary);">-</div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 10px;">
+                            <span style="font-size: 12px; font-weight: 700; color: var(--primary); text-transform: uppercase;">Billet Status & Staffing Health</span>
+                            <span class="badge" style="background:#eff6ff; color:#1d4ed8; font-size:10px;">Non-Fungible Billets</span>
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 11.5px; margin-bottom:8px;">
+                            <!-- Military Block -->
+                            <div style="background:#fff; border:1px solid #bfdbfe; padding:8px 10px; border-radius:6px;">
+                                <div style="font-size:10px; color:#1e40af; font-weight:700; display:flex; justify-content:space-between;">
+                                    <span>🎖️ MILITARY</span>
+                                    <span id="deptBilletMilRate" style="color:#b45309; font-weight:700;">0.0% Vac</span>
+                                </div>
+                                <div style="display:flex; justify-content:space-between; align-items:baseline; margin-top:4px;">
+                                    <div><span style="font-size:10px; color:var(--text-muted);">Auth:</span> <strong id="deptBilletMilAuth" style="font-size:14px; color:var(--primary);">-</strong></div>
+                                    <div><span style="font-size:10px; color:var(--text-muted);">Filled:</span> <strong id="deptBilletMil" style="font-size:14px; color:#15803d;">-</strong></div>
+                                    <div><span style="font-size:10px; color:var(--text-muted);">Vac:</span> <strong id="deptBilletMilVac" style="font-size:14px; color:#b45309;">-</strong></div>
+                                </div>
                             </div>
-                            <div style="background:#fff; border:1px solid var(--border); padding:8px 10px; border-radius:6px;">
-                                <div style="font-size:10.5px; color:var(--text-muted); font-weight:700;">VACANT BILLETS</div>
-                                <div id="deptBilletVac" style="font-size:18px; font-weight:700; color:var(--amber);">-</div>
-                            </div>
-                            <div style="background:#fff; border:1px solid var(--border); padding:8px 10px; border-radius:6px;">
-                                <div style="font-size:10.5px; color:var(--text-muted); font-weight:700;">FILLED (MILITARY)</div>
-                                <div id="deptBilletMil" style="font-size:16px; font-weight:700; color:var(--text-main);">-</div>
-                            </div>
-                            <div style="background:#fff; border:1px solid var(--border); padding:8px 10px; border-radius:6px;">
-                                <div style="font-size:10.5px; color:var(--text-muted); font-weight:700;">FILLED (CIVILIAN)</div>
-                                <div id="deptBilletCiv" style="font-size:16px; font-weight:700; color:var(--text-main);">-</div>
+                            <!-- Civilian Block -->
+                            <div style="background:#fff; border:1px solid #fed7aa; padding:8px 10px; border-radius:6px;">
+                                <div style="font-size:10px; color:#9a3412; font-weight:700; display:flex; justify-content:space-between;">
+                                    <span>🏛️ CIVILIAN</span>
+                                    <span id="deptBilletCivRate" style="color:#b45309; font-weight:700;">0.0% Vac</span>
+                                </div>
+                                <div style="display:flex; justify-content:space-between; align-items:baseline; margin-top:4px;">
+                                    <div><span style="font-size:10px; color:var(--text-muted);">Auth:</span> <strong id="deptBilletCivAuth" style="font-size:14px; color:var(--primary);">-</strong></div>
+                                    <div><span style="font-size:10px; color:var(--text-muted);">Filled:</span> <strong id="deptBilletCiv" style="font-size:14px; color:#15803d;">-</strong></div>
+                                    <div><span style="font-size:10px; color:var(--text-muted);">Vac:</span> <strong id="deptBilletCivVac" style="font-size:14px; color:#b45309;">-</strong></div>
+                                </div>
                             </div>
                         </div>
-                        <div style="margin-top:8px; font-size:11px; color:var(--text-muted);">
-                            MOA / Courtesy Adjuncts: <strong id="deptBilletMoa" style="color:var(--text-main);">-</strong>
+                        <div style="background:#fff; border:1px solid var(--border); padding:6px 10px; border-radius:6px; font-size:11px; display:flex; justify-content:space-between; align-items:center;">
+                            <span>Authorized: <strong id="deptBilletAuth" style="color:var(--primary);">-</strong> (<span id="deptBilletVac" style="color:#b45309;">-</span> vac, <strong id="deptBilletTotalRate" style="color:#b45309;">0.0%</strong>)</span>
+                            <span>MOA/Adj: <strong id="deptBilletMoa" style="color:var(--text-main);">-</strong></span>
                         </div>
                     </div>
 
@@ -366,22 +380,38 @@
             <div class="card">
                 <div class="card-header">
                     <div>
-                        <div class="card-title">Department Assigned Faculty</div>
-                        <div class="card-desc">Instructors assigned to this department. Click any column header to sort highest to lowest or reverse.</div>
+                        <div class="card-title">Department Assigned Faculty & Billet Roster</div>
+                        <div class="card-desc">Interactive resourcing workbench. Update billet type, occupancy, and role expectation tiers live in-browser.</div>
+                    </div>
+                    <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                        <button class="btn" onclick="openUploadRosterModal()" style="background:#fff; color:var(--primary); font-weight:700; border-color:var(--primary-light);">
+                            📁 Upload Department Roster
+                        </button>
+                        <button class="btn" onclick="downloadDeptStarterTemplate(currentDeptFacultyCode)" style="background:#eff6ff; color:#1d4ed8; font-weight:700; border-color:#bfdbfe;" title="Download a customized pre-populated Excel starter template with active instructors, billet types, and tier dropdowns">
+                            📥 Download Starter Template (.xlsx)
+                        </button>
+                        <button class="btn" onclick="openAddBilletModal()" style="background:#fff; color:#0369a1; font-weight:700; border-color:#7dd3fc;">
+                            + Add Billet / Faculty
+                        </button>
+                        <button class="btn" onclick="exportDeptRosterXLSX(currentDeptFacultyCode)" style="background:#fff; color:#15803d; font-weight:700; border-color:#86efac;" title="Export current calibrated department roster spreadsheet">
+                            📊 Export Roster (.xlsx)
+                        </button>
                     </div>
                 </div>
                 <div class="scroll-wrapper">
                     <table id="deptFacultyTable">
                         <thead>
                             <tr>
-                                <th class="sortable" onclick="sortDeptFacultyTable('instructor')">Instructor Name <span class="sort-icon" id="th-sort-instructor">↕</span></th>
-                                <th class="sortable" onclick="sortDeptFacultyTable('primary_dept')">Primary Department <span class="sort-icon" id="th-sort-primary_dept">↕</span></th>
-                                <th class="num sortable" onclick="sortDeptFacultyTable('weighted_sections')">Weighted Sections <span class="sort-icon" id="th-sort-weighted_sections">↕</span></th>
-                                <th class="num sortable" onclick="sortDeptFacultyTable('cadet_load_allocated')">Cadet Contact Load <span class="sort-icon" id="th-sort-cadet_load_allocated">↕</span></th>
-                                <th class="num sortable" onclick="sortDeptFacultyTable('advisees_count')"># of Advisees <span class="sort-icon" id="th-sort-advisees_count">↕</span></th>
-                                <th class="num sortable" onclick="sortDeptFacultyTable('total_cadet_seats')">Total Seats <span class="sort-icon" id="th-sort-total_cadet_seats">↕</span></th>
-                                <th class="num sortable" onclick="sortDeptFacultyTable('avg_section_size')">Avg Class Size <span class="sort-icon" id="th-sort-avg_section_size">↕</span></th>
-                                <th>Courses Taught</th>
+                                <th class="sortable" onclick="sortDeptFacultyTable('instructor')">Instructor / Billet <span class="sort-icon" id="th-sort-instructor">↕</span></th>
+                                <th class="sortable" onclick="sortDeptFacultyTable('billet_type')">Billet Type <span class="sort-icon" id="th-sort-billet_type">↕</span></th>
+                                <th class="sortable" onclick="sortDeptFacultyTable('occupancy_status')">Occupancy <span class="sort-icon" id="th-sort-occupancy_status">↕</span></th>
+                                <th class="sortable" onclick="sortDeptFacultyTable('expected_tier')">Role Tier <span class="sort-icon" id="th-sort-expected_tier">↕</span></th>
+                                <th class="num sortable" onclick="sortDeptFacultyTable('weighted_sections')">Teaching Secs <span class="sort-icon" id="th-sort-weighted_sections">↕</span></th>
+                                <th class="num sortable" onclick="sortDeptFacultyTable('cadet_load_allocated')">Cadets <span class="sort-icon" id="th-sort-cadet_load_allocated">↕</span></th>
+                                <th>Relief Secs</th>
+                                <th class="num sortable" onclick="sortDeptFacultyTable('gross_burden')">Gross Burden <span class="sort-icon" id="th-sort-gross_burden">↕</span></th>
+                                <th class="sortable" style="text-align:center;" onclick="sortDeptFacultyTable('section_delta')">Delta <span class="sort-icon" id="th-sort-section_delta">↕</span></th>
+                                <th style="text-align:center;">Action</th>
                             </tr>
                         </thead>
                         <tbody id="deptFacultyTbody"></tbody>
@@ -586,6 +616,139 @@
         </div>
 
 
+        <!-- ================================================================= -->
+        <!-- TAB 6: ADMIN & POLICY CONFIGURATION PANE -->
+        <!-- ================================================================= -->
+        <div id="tab-admin" class="tab-pane" style="display: none;">
+            <!-- Top Controls & Actions Banner -->
+            <div class="card" style="background:#fff; border-left: 5px solid var(--primary); padding:16px 20px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+                <div>
+                    <h2 style="color:var(--primary); font-size:18px; display:flex; align-items:center; gap:8px;">
+                        ⚙️ Institutional Policy & Curriculum Configuration
+                    </h2>
+                    <div class="card-desc">
+                        Directly calibrate curriculum baseline rules, academic subjects, senior capstone catalog numbers, and dynamic faculty tier definitions in real time.
+                    </div>
+                </div>
+                <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                    <button class="btn" style="background:#eff6ff; color:#1d4ed8; border-color:#bfdbfe; font-weight:700;" onclick="exportPolicyConfigJSON()">
+                        💾 Download Policy JSON
+                    </button>
+                    <label class="btn" style="background:#fff; color:var(--text-main); font-weight:700; cursor:pointer;" title="Import a previously saved workload policy JSON">
+                        📁 Import Policy JSON
+                        <input type="file" id="adminPolicyFileInput" accept=".json" style="display:none;" onchange="importPolicyConfigJSON(this.files[0])">
+                    </label>
+                    <button class="btn" style="background:#fff; color:#b91c1c; border-color:#fca5a5; font-weight:600;" onclick="resetPolicyToDefaults()">
+                        🔄 Reset to Defaults
+                    </button>
+                </div>
+            </div>
+
+            <!-- Curriculum Rules Grid: 2 columns (Subjects Grid on Left, Capstones & Filters on Right) -->
+            <div class="grid-2">
+                <!-- Academic Subjects Manager -->
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <div class="card-title">Active Academic Subject Codes</div>
+                            <div class="card-desc">Uncheck subjects to exclude all of their course sections from the workload analysis.</div>
+                        </div>
+                        <span id="adminSubjCountBadge" class="badge badge-dept"></span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; gap:8px; flex-wrap:wrap;">
+                        <input type="text" id="adminSubjSearch" placeholder="Search subject code (e.g. AERO, MATH)..." oninput="filterAdminSubjects()" style="padding:6px 10px; font-size:12px; border:1px solid var(--border); border-radius:6px; width:220px;">
+                        <div style="display:flex; gap:6px;">
+                            <button class="btn" style="padding:4px 10px; font-size:11.5px;" onclick="selectAllSubjects(true)">Select All</button>
+                            <button class="btn" style="padding:4px 10px; font-size:11.5px;" onclick="selectAllSubjects(false)">Deselect All</button>
+                        </div>
+                    </div>
+                    <div id="adminSubjectsGrid" style="display:flex; flex-wrap:wrap; gap:6px; max-height:260px; overflow-y:auto; padding:8px; background:#f8fafc; border:1px solid var(--border); border-radius:6px;">
+                    </div>
+                </div>
+
+                <!-- Capstones, 499s, and Thresholds -->
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <div class="card-title">Curriculum Baseline Rules & Capstone Catalog</div>
+                            <div class="card-desc">Manage Senior Capstone course numbers, 499 policy, and class size thresholds.</div>
+                        </div>
+                    </div>
+
+                    <!-- Senior Capstone Catalog Numbers Tag Manager -->
+                    <div style="margin-bottom:18px;">
+                        <div style="font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase; margin-bottom:6px;">
+                            Senior Design Capstone Course Numbers:
+                        </div>
+                        <div style="font-size:12px; color:var(--text-muted); margin-bottom:8px;">
+                            Courses matching these catalog numbers (or flagged in data) are treated as Senior Capstones:
+                        </div>
+                        <div id="adminCapstonesList" style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px;">
+                        </div>
+                        <div style="display:flex; gap:8px; align-items:center;">
+                            <input type="text" id="adminNewCapstoneInput" placeholder="Add course # (e.g. 482)" style="padding:6px 10px; font-size:12px; border:1px solid var(--border); border-radius:6px; width:140px;" onkeydown="if(event.key==='Enter') addCapstoneCourse()">
+                            <button class="btn btn-primary" onclick="addCapstoneCourse()">+ Add Course #</button>
+                        </div>
+                    </div>
+
+                    <hr style="border:none; border-top:1px solid var(--border); margin:16px 0;">
+
+                    <!-- Independent Study 499 Policy -->
+                    <div style="margin-bottom:18px; display:flex; justify-content:space-between; align-items:center; background:#f8fafc; padding:10px 14px; border-radius:6px; border:1px solid var(--border);">
+                        <div>
+                            <div style="font-weight:700; font-size:13px; color:var(--text-main);">Exclude Independent Study (499) Courses</div>
+                            <div style="font-size:11.5px; color:var(--text-muted);">Remove individual study sections from section averages and instructor load calculations.</div>
+                        </div>
+                        <input type="checkbox" id="adminExclude499sChk" style="width:18px; height:18px; cursor:pointer;" onchange="updateAdmin499Toggle(this.checked)">
+                    </div>
+
+                    <!-- Small Section Sub-10 Threshold -->
+                    <div style="display:flex; justify-content:space-between; align-items:center; background:#f8fafc; padding:10px 14px; border-radius:6px; border:1px solid var(--border);">
+                        <div>
+                            <div style="font-weight:700; font-size:13px; color:var(--text-main);">Small Section Audit Threshold</div>
+                            <div style="font-size:11.5px; color:var(--text-muted);">Sections with cadet count &le; this number are audited for elective fragmentation.</div>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:6px;">
+                            <span>&le;</span>
+                            <input type="number" id="adminSub10ThreshInput" min="1" max="50" style="width:60px; padding:6px; font-size:13px; font-weight:700; text-align:right; border:1px solid var(--border); border-radius:6px;" onchange="updateAdminSub10Threshold(this.value)">
+                            <span style="font-size:12px; color:var(--text-muted);">cadets</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dynamic Faculty Tier Manager -->
+            <div class="card">
+                <div class="card-header">
+                    <div>
+                        <div class="card-title">Dynamic Faculty Role Expectation Tiers</div>
+                        <div class="card-desc">Define standard expected teaching sections and FTE percentage allocations (Teaching, Admin, Research, Lab Ops). Create custom tiers dynamically.</div>
+                    </div>
+                    <button class="btn btn-primary" onclick="openAddTierModal()" style="font-weight:700;">
+                        + Add Custom Tier
+                    </button>
+                </div>
+
+                <div class="scroll-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Role Expectation Tier</th>
+                                <th style="text-align:right;">Expected Sections</th>
+                                <th style="text-align:right;">Teaching FTE %</th>
+                                <th style="text-align:right;">Admin / Gov %</th>
+                                <th style="text-align:right;">Research %</th>
+                                <th style="text-align:right;">Lab Ops %</th>
+                                <th style="text-align:center;">Total FTE %</th>
+                                <th style="text-align:center;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="adminTiersTbody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
     </div>
 
     <!-- Instructor Detail Modal -->
@@ -614,12 +777,175 @@
         </div>
     </div>
 
+    <!-- Upload Department Roster Modal -->
+    <div id="uploadRosterModal" class="modal-overlay" onclick="closeUploadRosterModal()">
+        <div class="modal-card" onclick="event.stopPropagation()" style="max-width:620px;">
+            <span class="modal-close" onclick="closeUploadRosterModal()">&times;</span>
+            <h2 style="color:var(--primary); margin-bottom:6px;">Upload Department Faculty Roster</h2>
+            <div style="font-size:13px; color:var(--text-muted); margin-bottom:16px;">
+                Department: <strong id="uploadRosterDeptCode" style="color:var(--primary);"></strong>
+            </div>
+
+            <!-- User Request C1 Starter Template Callout -->
+            <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px; padding:14px 16px; margin-bottom:18px; font-size:12.5px; color:#1e40af; line-height:1.5;">
+                <div style="font-weight:700; font-size:13px; margin-bottom:4px; display:flex; align-items:center; gap:6px;">
+                    💡 Need a starter roster spreadsheet?
+                </div>
+                You don't have to start from scratch. Download a pre-populated Excel workbook configured with this department's current instructors, billet types, and tier dropdown validation:
+                <div style="margin-top:10px;">
+                    <button type="button" class="btn" onclick="downloadDeptStarterTemplate()" style="background:#1d4ed8; color:#fff; font-weight:700; border:none; padding:7px 14px; font-size:12px;">
+                        📥 Download Department Starter Template (.xlsx)
+                    </button>
+                </div>
+            </div>
+
+            <div style="margin-bottom:16px;">
+                <label style="font-size:12px; font-weight:700; color:var(--text-main); display:block; margin-bottom:6px;">Select Department Roster File (.xlsx or .csv):</label>
+                <input type="file" id="deptRosterFileInput" accept=".xlsx,.xls,.csv" style="padding:10px; border:1px dashed var(--primary-light); border-radius:6px; width:100%; background:#f8fafc;" onchange="if(this.files.length > 0) handleRosterFileUpload(this.files[0])">
+            </div>
+
+            <div style="display:flex; justify-content:flex-end; gap:8px;">
+                <button type="button" class="btn" onclick="closeUploadRosterModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Billet Modal -->
+    <div id="addBilletModal" class="modal-overlay" onclick="closeAddBilletModal()">
+        <div class="modal-card" onclick="event.stopPropagation()" style="max-width:540px;">
+            <span class="modal-close" onclick="closeAddBilletModal()">&times;</span>
+            <h2 style="color:var(--primary); margin-bottom:6px;">Add Billet / Faculty Member</h2>
+            <div style="font-size:13px; color:var(--text-muted); margin-bottom:16px;">
+                Assigning to Department: <strong id="addBilletDeptCode" style="color:var(--primary);"></strong>
+            </div>
+
+            <div style="margin-bottom:12px;">
+                <label style="font-size:12px; font-weight:700; display:block; margin-bottom:4px;">Instructor Name or Billet Identifier:</label>
+                <input type="text" id="addBilletName" placeholder="e.g. Maj Alex Johnson or Vacant Mil Bil #04" style="width:100%; padding:8px 12px; border:1px solid var(--border); border-radius:6px; font-size:13px;">
+            </div>
+
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
+                <div>
+                    <label style="font-size:12px; font-weight:700; display:block; margin-bottom:4px;">Billet Type (Non-Fungible):</label>
+                    <select id="addBilletType" style="width:100%; padding:8px 10px; border:1px solid var(--border); border-radius:6px; font-size:13px; font-weight:600;">
+                        <option value="Military">🎖️ Military</option>
+                        <option value="Civilian">🏛️ Civilian</option>
+                        <option value="MOA_Adjunct">🤝 MOA / Adjunct</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="font-size:12px; font-weight:700; display:block; margin-bottom:4px;">Occupancy Status:</label>
+                    <select id="addBilletOccupancy" style="width:100%; padding:8px 10px; border:1px solid var(--border); border-radius:6px; font-size:13px; font-weight:600;">
+                        <option value="Filled">Filled</option>
+                        <option value="Vacant">⚠️ Vacant</option>
+                    </select>
+                </div>
+            </div>
+
+            <div style="margin-bottom:16px;">
+                <label style="font-size:12px; font-weight:700; display:block; margin-bottom:4px;">Role Expectation Tier:</label>
+                <select id="addBilletTier" style="width:100%; padding:8px 10px; border:1px solid var(--border); border-radius:6px; font-size:13px; font-weight:600;"></select>
+            </div>
+
+            <div style="display:flex; justify-content:flex-end; gap:8px;">
+                <button type="button" class="btn" onclick="closeAddBilletModal()">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="submitAddBillet()">Add to Department</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Faculty FTE Modal -->
+    <div id="editFteModal" class="modal-overlay" onclick="closeEditFteModal()">
+        <div class="modal-card" onclick="event.stopPropagation()" style="max-width:480px;">
+            <span class="modal-close" onclick="closeEditFteModal()">&times;</span>
+            <h2 style="color:var(--primary); margin-bottom:6px;">Adjust Faculty FTE Allocation</h2>
+            <div id="modalFteName" style="font-size:14px; font-weight:700; color:var(--text-main);"></div>
+            <div id="modalFteTier" style="font-size:12px; color:var(--text-muted); margin-bottom:16px;"></div>
+
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:16px;">
+                <div>
+                    <label style="font-size:11.5px; font-weight:700; display:block; margin-bottom:4px;">Teaching FTE %:</label>
+                    <input type="number" id="modalFteTeach" step="5" min="0" max="100" style="width:100%; padding:6px 10px; border:1px solid var(--border); border-radius:6px; text-align:right;">
+                </div>
+                <div>
+                    <label style="font-size:11.5px; font-weight:700; display:block; margin-bottom:4px;">Admin / Gov FTE %:</label>
+                    <input type="number" id="modalFteAdmin" step="5" min="0" max="100" style="width:100%; padding:6px 10px; border:1px solid var(--border); border-radius:6px; text-align:right;">
+                </div>
+                <div>
+                    <label style="font-size:11.5px; font-weight:700; display:block; margin-bottom:4px;">Research FTE %:</label>
+                    <input type="number" id="modalFteRes" step="5" min="0" max="100" style="width:100%; padding:6px 10px; border:1px solid var(--border); border-radius:6px; text-align:right;">
+                </div>
+                <div>
+                    <label style="font-size:11.5px; font-weight:700; display:block; margin-bottom:4px;">Lab Ops FTE %:</label>
+                    <input type="number" id="modalFteLab" step="5" min="0" max="100" style="width:100%; padding:6px 10px; border:1px solid var(--border); border-radius:6px; text-align:right;">
+                </div>
+            </div>
+
+            <div style="display:flex; justify-content:flex-end; gap:8px;">
+                <button type="button" class="btn" onclick="closeEditFteModal()">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveFacultyFte()">Save Allocation</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Add Custom Tier Modal -->
+    <div id="adminAddTierModal" class="modal-overlay" onclick="closeAddTierModal()">
+        <div class="modal-card" onclick="event.stopPropagation()" style="max-width:520px;">
+            <span class="modal-close" onclick="closeAddTierModal()">&times;</span>
+            <h2 style="color:var(--primary); margin-bottom:6px;">Create Custom Faculty Tier</h2>
+            <div style="font-size:13px; color:var(--text-muted); margin-bottom:16px;">
+                Define a custom role expectation tier with expected sections and FTE % allocations.
+            </div>
+
+            <div style="margin-bottom:12px;">
+                <label style="font-size:12px; font-weight:700; display:block; margin-bottom:4px;">Tier Display Name:</label>
+                <input type="text" id="newTierName" placeholder="e.g. Visiting Fellow, AOC / Flight Commander" style="width:100%; padding:8px 12px; border:1px solid var(--border); border-radius:6px; font-size:13px;">
+            </div>
+
+            <div style="margin-bottom:12px;">
+                <label style="font-size:12px; font-weight:700; display:block; margin-bottom:4px;">Expected Teaching Sections:</label>
+                <input type="number" id="newTierExpSec" step="0.5" min="0" max="10" value="1.5" style="width:100%; padding:8px 12px; border:1px solid var(--border); border-radius:6px; font-size:13px; text-align:right;">
+            </div>
+
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px;">
+                <div>
+                    <label style="font-size:11.5px; font-weight:700; display:block; margin-bottom:4px;">Teaching %:</label>
+                    <input type="number" id="newTierTeachPct" step="5" min="0" max="100" value="40" style="width:100%; padding:6px 10px; border:1px solid var(--border); border-radius:6px; text-align:right;">
+                </div>
+                <div>
+                    <label style="font-size:11.5px; font-weight:700; display:block; margin-bottom:4px;">Admin / Gov %:</label>
+                    <input type="number" id="newTierAdminPct" step="5" min="0" max="100" value="45" style="width:100%; padding:6px 10px; border:1px solid var(--border); border-radius:6px; text-align:right;">
+                </div>
+                <div>
+                    <label style="font-size:11.5px; font-weight:700; display:block; margin-bottom:4px;">Research %:</label>
+                    <input type="number" id="newTierResPct" step="5" min="0" max="100" value="10" style="width:100%; padding:6px 10px; border:1px solid var(--border); border-radius:6px; text-align:right;">
+                </div>
+                <div>
+                    <label style="font-size:11.5px; font-weight:700; display:block; margin-bottom:4px;">Lab Ops %:</label>
+                    <input type="number" id="newTierLabPct" step="5" min="0" max="100" value="5" style="width:100%; padding:6px 10px; border:1px solid var(--border); border-radius:6px; text-align:right;">
+                </div>
+            </div>
+
+            <div style="display:flex; justify-content:flex-end; gap:8px;">
+                <button type="button" class="btn" onclick="closeAddTierModal()">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="submitNewCustomTier()">Create Tier</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Vendor Libraries -->
+    <script src="js/xlsx.full.min.js"></script>
+
+    <!-- Reactive Workbench Engine -->
+    <script src="js/workbench_engine.js"></script>
+
     <!-- Application Controller Scripts -->
     <script src="js/charts.js"></script>
     <script src="js/department_view.js"></script>
     <script src="js/curriculum_view.js"></script>
     <script src="js/faculty_view.js"></script>
     <script src="js/whatif_sandbox.js"></script>
+    <script src="js/admin_view.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>
