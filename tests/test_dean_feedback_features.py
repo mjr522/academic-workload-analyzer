@@ -1,4 +1,4 @@
-﻿import unittest
+import unittest
 from analyzer.config import (
     CAPSTONE_COURSES,
     CROSS_LISTED_COURSES,
@@ -144,6 +144,29 @@ class TestDeanFeedbackFeatures(unittest.TestCase):
         self.assertTrue(cap_audit['is_capstone'])
         study_audit = [a for a in audit if a['class_nbr'] == '4003'][0]
         self.assertTrue(study_audit['is_499'])
+
+    def test_export_engine_includes_modes(self):
+        """Verify ExportEngine includes modes and default_mode in the exported JSON payload."""
+        from analyzer.export_engine import ExportEngine
+        sample_metrics = {
+            'school_kpis': {'total_sections': 10},
+            'institution_kpis': {'total_sections': 10},
+            'schools': [],
+            'departments': [],
+            'faculty_directory': [],
+            'sections_audit': [],
+            'default_mode': 'core',
+            'modes': {
+                'core': {'institution_kpis': {'total_sections': 8}},
+                'all': {'institution_kpis': {'total_sections': 10}}
+            }
+        }
+        exporter = ExportEngine(sample_metrics, {'files_processed': ['test.csv']})
+        payload = exporter.build_payload()
+        self.assertIn('modes', payload)
+        self.assertIn('default_mode', payload)
+        self.assertEqual(payload['default_mode'], 'core')
+        self.assertEqual(payload['modes']['core']['institution_kpis']['total_sections'], 8)
 
 
 if __name__ == '__main__':

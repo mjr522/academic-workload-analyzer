@@ -153,7 +153,7 @@ function renderFacultyDirectory() {
 }
 
 function openFacultyModal(instName) {
-    const data = window.currentWorkloadData;
+    const data = (typeof getActiveWorkloadData === 'function') ? getActiveWorkloadData() : window.currentWorkloadData;
     if (!data) return;
 
     const f = data.faculty_directory.find(x => x.instructor === instName);

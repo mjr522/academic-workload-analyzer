@@ -5,7 +5,7 @@
 let curriculumFilterMode = 'all';
 
 function renderCurriculumView() {
-    const data = window.currentWorkloadData;
+    const data = (typeof getActiveWorkloadData === 'function') ? getActiveWorkloadData() : window.currentWorkloadData;
     if (!data) return;
 
     filterAndRenderCurriculumTable();
@@ -20,7 +20,7 @@ function setCurriculumFilter(mode) {
 }
 
 function filterAndRenderCurriculumTable() {
-    const data = window.currentWorkloadData;
+    const data = (typeof getActiveWorkloadData === 'function') ? getActiveWorkloadData() : window.currentWorkloadData;
     if (!data) return;
 
     const tbody = document.getElementById('curricTbody');
@@ -30,43 +30,67 @@ function filterAndRenderCurriculumTable() {
     const q = (document.getElementById('curricSearch') ? document.getElementById('curricSearch').value : '').toLowerCase();
     const schoolFilter = (document.getElementById('curricSchoolFilter') ? document.getElementById('curricSchoolFilter').value : 'ALL');
 
-    let allScopeList = data.sections_audit || [];
-    if (schoolFilter !== 'ALL') {
-        allScopeList = allScopeList.filter(s => (s.school_code || 'OTHER') === schoolFilter);
+    const isExCap = (typeof window.excludeCapstones !== 'undefined') ? window.excludeCapstones : ((typeof excludeCapstones !== 'undefined') ? excludeCapstones : true);
+    const isEx499 = (typeof window.exclude499s !== 'undefined') ? window.exclude499s : ((typeof exclude499s !== 'undefined') ? exclude499s : true);
+
+    const masterSections = data.sections_audit || [];
+    const masterScopeList = (schoolFilter === 'ALL') 
+        ? masterSections 
+        : masterSections.filter(s => (s.school_code || 'OTHER') === schoolFilter);
+
+    // Active baseline list (respecting global exclusions)
+    let activeScopeList = masterScopeList;
+    if (isExCap && curriculumFilterMode !== 'capstone') {
+        activeScopeList = activeScopeList.filter(s => !s.is_capstone);
+    }
+    if (isEx499 && curriculumFilterMode !== '499') {
+        activeScopeList = activeScopeList.filter(s => !s.is_499);
     }
 
-    // Respect global exclusions unless the user explicitly filtered for capstones
-    if (typeof excludeCapstones !== 'undefined' && excludeCapstones && curriculumFilterMode !== 'capstone') {
-        allScopeList = allScopeList.filter(s => !s.is_capstone);
-    }
-    if (typeof exclude499s !== 'undefined' && exclude499s) {
-        allScopeList = allScopeList.filter(s => !s.is_499);
-    }
+    // Master counts in scope (for status reporting)
+    const masterCapsCount = masterScopeList.filter(s => s.is_capstone).length;
+    const master499Count = masterScopeList.filter(s => s.is_499).length;
 
-    // Update KPI counters for this school scope
-    const sub10Scope = allScopeList.filter(s => s.is_sub10);
-    const capstoneScope = allScopeList.filter(s => s.is_capstone);
+    // Active KPI calculations
+    const sub10Scope = activeScopeList.filter(s => s.is_sub10);
 
     const totalEl = document.getElementById('curricTotalSecs');
-    if (totalEl) totalEl.textContent = allScopeList.length.toLocaleString();
+    if (totalEl) totalEl.textContent = activeScopeList.length.toLocaleString();
 
     const sub10El = document.getElementById('curricSub10Secs');
     if (sub10El) {
-        const pct = allScopeList.length > 0 ? Math.round(sub10Scope.length / allScopeList.length * 100) : 0;
+        const pct = activeScopeList.length > 0 ? Math.round(sub10Scope.length / activeScopeList.length * 100) : 0;
         sub10El.textContent = `${sub10Scope.length.toLocaleString()} (${pct}%)`;
     }
 
     const capstoneEl = document.getElementById('curricCapstoneSecs');
-    if (capstoneEl) capstoneEl.textContent = capstoneScope.length.toLocaleString();
+    if (capstoneEl) {
+        if (isExCap) {
+            capstoneEl.innerHTML = `<span style="color:#64748b;">0</span> <span style="font-size:12px; color:#b91c1c; font-weight:700;">(${masterCapsCount} Excluded)</span>`;
+        } else {
+            capstoneEl.innerHTML = `<strong style="color:#6b21a8;">${masterCapsCount}</strong> <span style="font-size:12px; color:#15803d; font-weight:700;">(Active)</span>`;
+        }
+    }
 
-    let list = allScopeList;
+    const study499El = document.getElementById('curric499Secs');
+    if (study499El) {
+        if (isEx499) {
+            study499El.innerHTML = `<span style="color:#64748b;">0</span> <span style="font-size:12px; color:#b91c1c; font-weight:700;">(${master499Count} Excluded)</span>`;
+        } else {
+            study499El.innerHTML = `<strong style="color:#0369a1;">${master499Count}</strong> <span style="font-size:12px; color:#15803d; font-weight:700;">(Active)</span>`;
+        }
+    }
 
+    // Determine table rows based on filter mode
+    let list = activeScopeList;
     if (curriculumFilterMode === 'sub10') {
         list = list.filter(s => s.is_sub10);
     } else if (curriculumFilterMode === 'capstone') {
-        // If clicking capstone filter, show capstones from master dataset
-        const masterCapstones = (data.sections_audit || []).filter(s => s.is_capstone && (schoolFilter === 'ALL' || (s.school_code || 'OTHER') === schoolFilter));
-        list = masterCapstones;
+        // Show master capstones in this school scope so user can inspect them
+        list = masterScopeList.filter(s => s.is_capstone);
+    } else if (curriculumFilterMode === '499') {
+        // Show master 499s in this school scope so user can inspect them
+        list = masterScopeList.filter(s => s.is_499);
     }
 
     if (q) {

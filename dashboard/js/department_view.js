@@ -197,7 +197,7 @@ function updateSortIcons() {
 
 function renderDepartmentFacultyTable(deptCode) {
     currentDeptFacultyCode = deptCode;
-    const data = window.currentWorkloadData;
+    const data = (typeof getActiveWorkloadData === 'function') ? getActiveWorkloadData() : window.currentWorkloadData;
     const tbody = document.getElementById('deptFacultyTbody');
     if (!tbody || !data) return;
     tbody.innerHTML = '';
@@ -309,7 +309,7 @@ function filterDeptCoursesTable() {
 
 function renderDepartmentCoursesTable(deptCode) {
     currentDeptCoursesCode = deptCode;
-    const data = window.currentWorkloadData;
+    const data = (typeof getActiveWorkloadData === 'function') ? getActiveWorkloadData() : window.currentWorkloadData;
     const tbody = document.getElementById('deptCoursesTbody');
     if (!tbody || !data) return;
     tbody.innerHTML = '';
@@ -327,10 +327,12 @@ function renderDepartmentCoursesTable(deptCode) {
     );
 
     // Apply global capstone and 499 exclusion filters
-    if (typeof excludeCapstones !== 'undefined' && excludeCapstones) {
+    const isExCap = (typeof window.excludeCapstones !== 'undefined') ? window.excludeCapstones : ((typeof excludeCapstones !== 'undefined') ? excludeCapstones : true);
+    const isEx499 = (typeof window.exclude499s !== 'undefined') ? window.exclude499s : ((typeof exclude499s !== 'undefined') ? exclude499s : true);
+    if (isExCap) {
         sections = sections.filter(s => !s.is_capstone);
     }
-    if (typeof exclude499s !== 'undefined' && exclude499s) {
+    if (isEx499) {
         sections = sections.filter(s => !s.is_499);
     }
 

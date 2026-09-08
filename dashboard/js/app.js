@@ -116,13 +116,17 @@ function processJsonFile(file) {
 
 /**
  * Returns the currently active data snapshot based on Capstone and 499 exclusion toggles.
+ * If root.modes is present (pre-baked by python engine), uses high-performance pre-calculated snapshot.
+ * If root.modes is missing (older or third-party JSON), dynamically recalculates all metrics on the fly!
  */
 function getActiveWorkloadData() {
     if (!window.currentWorkloadData) return null;
     const root = window.currentWorkloadData;
-    if (!root.modes) {
-        return root;
-    }
+
+    // Ensure globals on window
+    window.excludeCapstones = excludeCapstones;
+    window.exclude499s = exclude499s;
+    window.currentFacultyScope = currentFacultyScope;
 
     let modeKey = 'core';
     if (excludeCapstones && exclude499s) modeKey = 'core';
@@ -130,43 +134,290 @@ function getActiveWorkloadData() {
     else if (!excludeCapstones && exclude499s) modeKey = 'no_499s';
     else modeKey = 'all';
 
-    const modeData = root.modes[modeKey] || root.modes['core'] || root;
+    if (root.modes && root.modes[modeKey]) {
+        const modeData = root.modes[modeKey];
+        return {
+            ...root,
+            ...modeData,
+            activeMode: modeKey,
+            sections_audit: root.sections_audit || []
+        };
+    }
+
+    // Dynamic client-side fallback if modes dictionary is missing
+    return computeDynamicClientWorkloadData(root, excludeCapstones, exclude499s);
+}
+
+/**
+ * Dynamic client-side metrics recalculation engine
+ */
+function computeDynamicClientWorkloadData(root, exCap, ex499) {
+    const allSecs = root.sections_audit || [];
+    const activeSecs = allSecs.filter(s => (!exCap || !s.is_capstone) && (!ex499 || !s.is_499));
+
+    const total_sections = activeSecs.length;
+    const total_cadet_seats = activeSecs.reduce((acc, s) => acc + (s.cadets !== undefined ? s.cadets : (s.cadet_count !== undefined ? s.cadet_count : 0)), 0);
+    const total_sch = activeSecs.reduce((acc, s) => {
+        const cadets = s.cadets !== undefined ? s.cadets : (s.cadet_count !== undefined ? s.cadet_count : 0);
+        const credits = s.credits !== undefined ? s.credits : (s.credit_units !== undefined ? s.credit_units : 3.0);
+        return acc + (cadets * credits);
+    }, 0);
+    const overall_avg_section_size = total_sections > 0 ? Math.round((total_cadet_seats / total_sections) * 100) / 100 : 0;
+    const sub10Secs = activeSecs.filter(s => s.is_sub10);
+    const overall_sub10_count = sub10Secs.length;
+    const overall_sub10_pct = total_sections > 0 ? Math.round((overall_sub10_count / total_sections) * 1000) / 10 : 0;
+
+    const instSecMap = {};
+    activeSecs.forEach(s => {
+        (s.instructors || []).forEach(inst => {
+            if (!instSecMap[inst]) instSecMap[inst] = [];
+            instSecMap[inst].push(s);
+        });
+    });
+
+    const faculty_directory = (root.faculty_directory || []).map(f => {
+        const mySecs = instSecMap[f.instructor] || [];
+        const nSecs = mySecs.length;
+        let weighted_sections = 0;
+        let cadet_load_allocated = 0;
+        let total_seats = 0;
+        const coursesTaughtSet = new Set();
+        const assignments = [];
+
+        mySecs.forEach(s => {
+            const coCount = Math.max(1, (s.instructors || []).length);
+            const w = Math.round((1.0 / coCount) * 100) / 100;
+            const cCount = s.cadets !== undefined ? s.cadets : (s.cadet_count !== undefined ? s.cadet_count : 0);
+            const allocCadets = Math.round(cCount / coCount);
+            weighted_sections += w;
+            cadet_load_allocated += allocCadets;
+            total_seats += cCount;
+            const courseStr = `${s.subject || ''} ${s.course_nbr || ''}`.trim();
+            if (courseStr) coursesTaughtSet.add(courseStr);
+
+            assignments.push({
+                course: courseStr,
+                title: s.title || '',
+                section: s.section || '',
+                term: s.term || '',
+                cadets: cCount,
+                sec_weight: w,
+                weight_type: coCount > 1 ? 'Co-Taught' : 'Solo',
+                co_instructors: (s.instructors || []).filter(i => i !== f.instructor)
+            });
+        });
+
+        weighted_sections = Math.round(weighted_sections * 100) / 100;
+        const avg_size = nSecs > 0 ? Math.round((total_seats / nSecs) * 10) / 10 : 0;
+        const expSec = f.expected_sections !== undefined ? f.expected_sections : 3.0;
+        const delta = Math.round((weighted_sections - expSec) * 100) / 100;
+
+        return {
+            ...f,
+            weighted_sections: weighted_sections,
+            cadet_load_allocated: cadet_load_allocated,
+            total_cadet_seats: total_seats,
+            avg_section_size: avg_size,
+            courses_taught: Array.from(coursesTaughtSet),
+            course_assignments: assignments,
+            section_delta: delta
+        };
+    });
+
+    const departments = (root.departments || []).map(dept => {
+        const subjs = dept.subjects_included || [];
+        const deptSecs = activeSecs.filter(s =>
+            s.department === dept.dept_code ||
+            (dept.dept_code === 'ESECE' && s.department === 'ESEC') ||
+            (subjs && subjs.includes(s.subject))
+        );
+
+        const d_sections = deptSecs.length;
+        const d_seats = deptSecs.reduce((acc, s) => acc + (s.cadets !== undefined ? s.cadets : (s.cadet_count !== undefined ? s.cadet_count : 0)), 0);
+        const d_sch = deptSecs.reduce((acc, s) => {
+            const cadets = s.cadets !== undefined ? s.cadets : (s.cadet_count !== undefined ? s.cadet_count : 0);
+            const credits = s.credits !== undefined ? s.credits : (s.credit_units !== undefined ? s.credit_units : 3.0);
+            return acc + (cadets * credits);
+        }, 0);
+        const d_courses = new Set(deptSecs.map(s => `${s.subject} ${s.course_nbr}`)).size;
+        const d_sub10 = deptSecs.filter(s => s.is_sub10).length;
+        const d_sub10_pct = d_sections > 0 ? Math.round((d_sub10 / d_sections) * 1000) / 10 : 0;
+
+        const dist = {'<=10': 0, '11-15': 0, '16-20': 0, '21-25': 0, '26+': 0};
+        deptSecs.forEach(s => {
+            const sz = s.cadets !== undefined ? s.cadets : (s.cadet_count !== undefined ? s.cadet_count : 0);
+            if (sz <= 10) dist['<=10']++;
+            else if (sz <= 15) dist['11-15']++;
+            else if (sz <= 20) dist['16-20']++;
+            else if (sz <= 25) dist['21-25']++;
+            else dist['26+']++;
+        });
+
+        const lvls = {'100': 0, '200': 0, '300': 0, '400': 0, 'Other': 0};
+        deptSecs.forEach(s => {
+            const nbr = String(s.course_nbr || '').replace(/\D/g, '');
+            if (nbr.startsWith('1')) lvls['100']++;
+            else if (nbr.startsWith('2')) lvls['200']++;
+            else if (nbr.startsWith('3')) lvls['300']++;
+            else if (nbr.startsWith('4')) lvls['400']++;
+            else lvls['Other']++;
+        });
+
+        const deptFac = faculty_directory.filter(f => f.primary_dept === dept.dept_code);
+        const teachingFac = deptFac.filter(f => f.weighted_sections > 0);
+        const facCount = teachingFac.length > 0 ? teachingFac.length : deptFac.length;
+        const totWeighted = teachingFac.reduce((acc, f) => acc + f.weighted_sections, 0);
+        const totCadets = teachingFac.reduce((acc, f) => acc + f.cadet_load_allocated, 0);
+        const secPerInst = teachingFac.length > 0 ? Math.round((totWeighted / teachingFac.length) * 100) / 100 : 0;
+        const stuPerInst = teachingFac.length > 0 ? Math.round((totCadets / teachingFac.length) * 100) / 100 : 0;
+
+        return {
+            ...dept,
+            total_sections: d_sections,
+            total_courses: d_courses,
+            total_cadet_seats: d_seats,
+            total_sch: d_sch,
+            sub10_sections_count: d_sub10,
+            sub10_percentage: d_sub10_pct,
+            section_size_distribution: dist,
+            course_levels: lvls,
+            faculty_count: facCount,
+            teaching_faculty_count: teachingFac.length,
+            sections_per_inst_mean: secPerInst,
+            students_per_inst_mean: stuPerInst
+        };
+    });
+
+    const schools = (root.schools || []).map(sch => {
+        const schDepts = departments.filter(d => (d.school_code || 'OTHER') === sch.school_code);
+        const schSecs = schDepts.reduce((acc, d) => acc + d.total_sections, 0);
+        const schSeats = schDepts.reduce((acc, d) => acc + d.total_cadet_seats, 0);
+        const schSCH = schDepts.reduce((acc, d) => acc + d.total_sch, 0);
+        const schSub10 = schDepts.reduce((acc, d) => acc + d.sub10_sections_count, 0);
+        const schSub10Pct = schSecs > 0 ? Math.round((schSub10 / schSecs) * 1000) / 10 : 0;
+        const schFac = schDepts.reduce((acc, d) => acc + (d.teaching_faculty_count || 0), 0);
+        const schWeighted = schDepts.reduce((acc, d) => acc + ((d.sections_per_inst_mean || 0) * (d.teaching_faculty_count || 0)), 0);
+        const schCadets = schDepts.reduce((acc, d) => acc + ((d.students_per_inst_mean || 0) * (d.teaching_faculty_count || 0)), 0);
+        const secPerInst = schFac > 0 ? Math.round((schWeighted / schFac) * 100) / 100 : 0;
+        const stuPerInst = schFac > 0 ? Math.round((schCadets / schFac) * 100) / 100 : 0;
+
+        return {
+            ...sch,
+            total_sections: schSecs,
+            total_cadet_seats: schSeats,
+            total_sch: schSCH,
+            sub10_sections_count: schSub10,
+            sub10_percentage: schSub10Pct,
+            teaching_faculty_count: schFac,
+            sections_per_inst_mean: secPerInst,
+            students_per_inst_mean: stuPerInst
+        };
+    });
+
+    const instKPIs = {
+        total_sections,
+        total_cadet_seats,
+        total_sch,
+        overall_avg_section_size,
+        overall_sub10_count,
+        overall_sub10_pct,
+        unique_faculty_count: faculty_directory.filter(f => f.weighted_sections > 0).length,
+        teaching_faculty_count: faculty_directory.filter(f => f.weighted_sections > 0).length,
+        all_billets_count: faculty_directory.length
+    };
+
     return {
         ...root,
-        ...modeData,
-        activeMode: modeKey,
-        sections_audit: root.sections_audit || []
+        institution_kpis: instKPIs,
+        school_kpis: instKPIs,
+        schools,
+        departments,
+        faculty_directory,
+        sections_audit: allSecs,
+        activeMode: `client_${exCap ? 'no_cap' : 'with_cap'}_${ex499 ? 'no_499' : 'with_499'}`
     };
+}
+
+function updateToggleButtonsUI() {
+    window.excludeCapstones = excludeCapstones;
+    window.exclude499s = exclude499s;
+    window.currentFacultyScope = currentFacultyScope;
+
+    const root = window.currentWorkloadData;
+    const allSecs = root ? (root.sections_audit || []) : [];
+    const totalCapstones = allSecs.filter(s => s.is_capstone).length;
+    const total499s = allSecs.filter(s => s.is_499).length;
+
+    // 1. Capstone button
+    const capBtn = document.getElementById('toggleCapstonesBtn');
+    const capIcon = document.getElementById('capstoneIcon');
+    const capLabel = document.getElementById('capstoneLabel');
+    if (capBtn) {
+        capBtn.className = `filter-toggle-btn ${excludeCapstones ? 'excluded' : 'included'}`;
+        const capCountStr = totalCapstones > 0 ? (excludeCapstones ? ` (-${totalCapstones})` : ` (+${totalCapstones})`) : '';
+        if (capIcon) capIcon.textContent = excludeCapstones ? '🚫' : '⚠️';
+        if (capLabel) capLabel.textContent = `Capstones: ${excludeCapstones ? 'Excluded' : 'Included'}${capCountStr}`;
+        capBtn.title = excludeCapstones 
+            ? `Senior Design Capstones are currently EXCLUDED from section counts and faculty loads (${totalCapstones} sections hidden). Click to include.`
+            : `Senior Design Capstones are currently INCLUDED in section counts (${totalCapstones} sections active). Click to exclude.`;
+    }
+
+    // 2. 499s button
+    const studyBtn = document.getElementById('toggle499sBtn');
+    const studyIcon = document.getElementById('study499Icon');
+    const studyLabel = document.getElementById('study499Label');
+    if (studyBtn) {
+        studyBtn.className = `filter-toggle-btn ${exclude499s ? 'excluded' : 'included'}`;
+        const studyCountStr = total499s > 0 ? (exclude499s ? ` (-${total499s})` : ` (+${total499s})`) : '';
+        if (studyIcon) studyIcon.textContent = exclude499s ? '🚫' : '⚠️';
+        if (studyLabel) studyLabel.textContent = `499s: ${exclude499s ? 'Excluded' : 'Included'}${studyCountStr}`;
+        studyBtn.title = exclude499s
+            ? `Independent Study 499s are currently EXCLUDED from section counts and faculty loads (${total499s} sections hidden). Click to include.`
+            : `Independent Study 499s are currently INCLUDED in section counts (${total499s} sections active). Click to exclude.`;
+    }
+
+    // 3. Live Baseline Status Pill in Filter Toolbar
+    const badge = document.getElementById('filterImpactBadge');
+    if (badge) {
+        if (excludeCapstones && exclude499s) {
+            badge.style.background = '#eff6ff';
+            badge.style.color = '#1d4ed8';
+            badge.style.border = '1px solid #bfdbfe';
+            badge.innerHTML = `🛡️ <strong>Core Clean View:</strong> Capstones Excluded (-${totalCapstones}) | 499s Excluded (-${total499s})`;
+        } else if (!excludeCapstones && !exclude499s) {
+            badge.style.background = '#fef3c7';
+            badge.style.color = '#92400e';
+            badge.style.border = '1px solid #fde68a';
+            badge.innerHTML = `⚠️ <strong>All Offerings View:</strong> Capstones Included (+${totalCapstones}) | 499s Included (+${total499s})`;
+        } else if (!excludeCapstones && exclude499s) {
+            badge.style.background = '#f5f3ff';
+            badge.style.color = '#6b21a8';
+            badge.style.border = '1px solid #ddd6fe';
+            badge.innerHTML = `📐 <strong>Capstones Included (+${totalCapstones})</strong> | 499s Excluded (-${total499s})`;
+        } else {
+            badge.style.background = '#f0fdf4';
+            badge.style.color = '#15803d';
+            badge.style.border = '1px solid #bbf7d0';
+            badge.innerHTML = `🔬 <strong>499s Included (+${total499s})</strong> | Capstones Excluded (-${totalCapstones})`;
+        }
+    }
 }
 
 function toggleCapstonesFilter() {
     excludeCapstones = !excludeCapstones;
-    const btn = document.getElementById('toggleCapstonesBtn');
-    const icon = document.getElementById('capstoneIcon');
-    const label = document.getElementById('capstoneLabel');
-    if (btn) {
-        btn.className = `filter-toggle-btn ${excludeCapstones ? 'excluded' : 'included'}`;
-    }
-    if (icon) icon.textContent = excludeCapstones ? '🚫' : '⚠️';
-    if (label) label.textContent = excludeCapstones ? 'Capstones: Excluded' : 'Capstones: Included';
+    updateToggleButtonsUI();
     refreshAllViews();
 }
 
 function toggle499sFilter() {
     exclude499s = !exclude499s;
-    const btn = document.getElementById('toggle499sBtn');
-    const icon = document.getElementById('study499Icon');
-    const label = document.getElementById('study499Label');
-    if (btn) {
-        btn.className = `filter-toggle-btn ${exclude499s ? 'excluded' : 'included'}`;
-    }
-    if (icon) icon.textContent = exclude499s ? '🚫' : '⚠️';
-    if (label) label.textContent = exclude499s ? '499s: Excluded' : '499s: Included';
+    updateToggleButtonsUI();
     refreshAllViews();
 }
 
 function setFacultyScope(scope) {
     currentFacultyScope = scope;
+    window.currentFacultyScope = scope;
     const btnTeaching = document.getElementById('btnScopeTeaching');
     const btnAll = document.getElementById('btnScopeAll');
     if (btnTeaching && btnAll) {
@@ -183,6 +434,7 @@ function setFacultyScope(scope) {
 
 function loadDataset(data) {
     window.currentWorkloadData = data;
+    updateToggleButtonsUI();
 
     const alertEl = document.getElementById('noDataAlert');
     if (alertEl) alertEl.style.display = 'none';

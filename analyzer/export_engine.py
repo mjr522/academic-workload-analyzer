@@ -16,7 +16,7 @@ class ExportEngine:
         self.meta_info = meta_info
 
     def build_payload(self) -> Dict[str, Any]:
-        return {
+        payload = {
             'schema_version': '3.0.0',
             'generated_at': datetime.now().isoformat(),
             'meta': self.meta_info,
@@ -27,6 +27,11 @@ class ExportEngine:
             'faculty_directory': self.metrics_data['faculty_directory'],
             'sections_audit': self.metrics_data['sections_audit']
         }
+        if 'modes' in self.metrics_data:
+            payload['modes'] = self.metrics_data['modes']
+        if 'default_mode' in self.metrics_data:
+            payload['default_mode'] = self.metrics_data['default_mode']
+        return payload
 
     def export_json(self, output_path: str) -> str:
         os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)

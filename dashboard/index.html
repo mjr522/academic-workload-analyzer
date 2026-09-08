@@ -89,6 +89,7 @@
                 <button id="toggle499sBtn" class="filter-toggle-btn excluded" onclick="toggle499sFilter()" title="Click to toggle Independent Study 499s from section counts and averages">
                     <span id="study499Icon">🚫</span> <span id="study499Label">499s: Excluded</span>
                 </button>
+                <span id="filterImpactBadge" class="badge" style="padding: 5px 11px; font-size: 11.5px; border-radius: 6px; font-weight: 600;"></span>
             </div>
             <div class="filter-group">
                 <span class="filter-label">Faculty Resourcing Scope:</span>
@@ -433,6 +434,7 @@
                         <button class="btn btn-primary curric-filter-btn" id="btn-curric-all" onclick="setCurriculumFilter('all')">All Sections</button>
                         <button class="btn curric-filter-btn" id="btn-curric-sub10" onclick="setCurriculumFilter('sub10')">Sections ≤ 10 Cadets</button>
                         <button class="btn curric-filter-btn" id="btn-curric-capstone" onclick="setCurriculumFilter('capstone')">Senior Capstones</button>
+                        <button class="btn curric-filter-btn" id="btn-curric-499" onclick="setCurriculumFilter('499')">Independent Study 499s</button>
                         <select id="curricSchoolFilter" onchange="filterAndRenderCurriculumTable()" style="padding:6px 10px; font-size:12px; border:1px solid var(--border); border-radius:6px; background:#fff; font-weight:600; cursor:pointer;">
                             <option value="ALL">All Schools</option>
                             <option value="SINE">SINE (Engineering)</option>
@@ -443,7 +445,7 @@
                     </div>
                 </div>
 
-                <div class="kpi-grid" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 16px;">
+                <div class="kpi-grid" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 16px;">
                     <div class="kpi-card">
                         <div class="kpi-title">Total Active Sections</div>
                         <div class="kpi-value" id="curricTotalSecs">-</div>
@@ -455,6 +457,10 @@
                     <div class="kpi-card">
                         <div class="kpi-title">Senior Design Capstone Sections</div>
                         <div class="kpi-value" id="curricCapstoneSecs">-</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-title">Independent Study 499 Sections</div>
+                        <div class="kpi-value" id="curric499Secs">-</div>
                     </div>
                 </div>
 

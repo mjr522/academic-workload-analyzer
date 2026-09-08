@@ -4,14 +4,21 @@
  */
 
 let scenarioModifiedData = null;
+let hasWhatIfCustomEdits = false;
 
-function initWhatIfSandbox() {
+function initWhatIfSandbox(force = false) {
     const data = (typeof getActiveWorkloadData === 'function') ? getActiveWorkloadData() : window.currentWorkloadData;
     if (!data) return;
 
-    // Clone clean state
-    scenarioModifiedData = JSON.parse(JSON.stringify(data));
-    renderWhatIfFacultyTable();
+    if (!hasWhatIfCustomEdits || force) {
+        scenarioModifiedData = JSON.parse(JSON.stringify(data));
+        if (force) hasWhatIfCustomEdits = false;
+        renderWhatIfFacultyTable();
+    }
+}
+
+function resetWhatIfSandbox() {
+    initWhatIfSandbox(true);
 }
 
 function onWhatIfSchoolFilterChange() {
@@ -121,6 +128,7 @@ function updateFacultyDepartment(instName, newDept) {
     const f = scenarioModifiedData.faculty_directory.find(x => x.instructor === instName);
     if (f) {
         f.primary_dept = newDept;
+        hasWhatIfCustomEdits = true;
     }
 }
 
@@ -139,6 +147,7 @@ function updateFacultyTier(instName, newTierKey) {
         f.expected_tier = tierInfo.name;
         f.expected_sections = tierInfo.secs;
         f.section_delta = Math.round((f.weighted_sections - f.expected_sections) * 100) / 100;
+        hasWhatIfCustomEdits = true;
     }
 }
 
