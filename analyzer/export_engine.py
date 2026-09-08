@@ -44,7 +44,7 @@ class ExportEngine:
         default_policy = {
             'included_subjects': all_subjects,
             'excluded_subjects': sorted(list(DEFAULT_EXCLUDED_SUBJECTS)),
-            'capstone_courses': sorted(list(set(c[1] for c in CAPSTONE_COURSES))),
+            'capstone_courses': sorted(list(set(f"{c[0]} {c[1]}" for c in CAPSTONE_COURSES))),
             'capstone_pairs': [{'subject': c[0], 'course_nbr': c[1]} for c in sorted(list(CAPSTONE_COURSES))],
             'co_convened_pairs': [
                 [{'subject': pair[0][0], 'course_nbr': pair[0][1]}, {'subject': pair[1][0], 'course_nbr': pair[1][1]}]

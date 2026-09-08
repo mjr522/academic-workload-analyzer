@@ -14,7 +14,12 @@ window.workbenchState = {
     departments: [],          // Department metadata
     policy: {                 // Active institutional policy rules
         includedSubjects: [],
-        capstoneCourses: ['480', '481', '491', '492', '463', '464', '451', '452'],
+        capstoneCourses: [
+            'AEROENGR 480', 'AEROENGR 481', 'BEHSCI 498', 'CIVENGR 451', 'COMPSCI 453',
+            'CYBERSCI 438', 'DATASCI 421', 'ECE 463', 'ENGLISH 489', 'GEO 497',
+            'LDRSHP 400', 'MATH 420', 'MECHENGR 491', 'MGT 472', 'OPSRSCH 421',
+            'PHYSICS 490', 'POLSCI 491', 'SYSENGR 491'
+        ],
         excludeCapstones: true,
         exclude499s: true,
         sub10Threshold: 10,
@@ -51,7 +56,16 @@ function initWorkbenchState(data) {
     if (data.default_policy) {
         const dp = data.default_policy;
         window.workbenchState.policy.includedSubjects = dp.included_subjects || Array.from(allSubjects);
-        if (dp.capstone_courses) window.workbenchState.policy.capstoneCourses = dp.capstone_courses;
+        if (dp.capstone_courses && Array.isArray(dp.capstone_courses)) {
+            const hasPairs = dp.capstone_courses.some(c => typeof c === 'string' && c.includes(' '));
+            if (hasPairs) {
+                window.workbenchState.policy.capstoneCourses = dp.capstone_courses;
+            } else if (dp.capstone_pairs && dp.capstone_pairs.length > 0) {
+                window.workbenchState.policy.capstoneCourses = dp.capstone_pairs.map(p => `${p.subject} ${p.course_nbr}`.trim());
+            } else {
+                window.workbenchState.policy.capstoneCourses = dp.capstone_courses;
+            }
+        }
         if (dp.sub10_threshold) window.workbenchState.policy.sub10Threshold = dp.sub10_threshold;
         if (dp.tiers) {
             window.workbenchState.policy.tiers = JSON.parse(JSON.stringify(dp.tiers));
@@ -136,29 +150,43 @@ function recomputeWorkbenchMetrics() {
     const ex499 = Boolean(policy.exclude499s);
     const sub10Thresh = Number(policy.sub10Threshold) || 10;
     const includedSubjs = new Set(policy.includedSubjects || []);
-    const capNumbers = new Set((policy.capstoneCourses || []).map(String));
+    const capCoursesSet = new Set();
+    (policy.capstoneCourses || []).forEach(item => {
+        if (typeof item === 'string') {
+            capCoursesSet.add(item.trim().toUpperCase());
+        } else if (item && item.subject && item.course_nbr) {
+            capCoursesSet.add(`${item.subject} ${item.course_nbr}`.trim().toUpperCase());
+        }
+    });
 
-    // 1. Filter active sections
+    // 1. Filter active sections (without mutating rawSections)
     const allSecs = st.rawSections || [];
-    const activeSecs = allSecs.filter(s => {
-        // Subject inclusion
-        if (s.subject && !includedSubjs.has(s.subject)) return false;
+    const activeSecs = [];
 
-        // Capstone check
-        const isCap = s.is_capstone || capNumbers.has(String(s.course_nbr));
-        s.is_capstone = isCap;
-        if (exCap && isCap) return false;
+    allSecs.forEach(rawSec => {
+        // Subject inclusion
+        if (rawSec.subject && !includedSubjs.has(rawSec.subject)) return;
+
+        // Capstone check: match by Subject + Course Number
+        const courseKey = `${rawSec.subject || ''} ${rawSec.course_nbr || ''}`.trim().toUpperCase();
+        const isCap = capCoursesSet.has(courseKey);
+        if (exCap && isCap) return;
 
         // 499 check
-        const is499 = s.is_499 || String(s.course_nbr) === '499';
-        s.is_499 = is499;
-        if (ex499 && is499) return false;
+        const is499 = String(rawSec.course_nbr) === '499';
+        if (ex499 && is499) return;
 
         // Sub-10 evaluation based on active threshold
-        const cCount = s.cadets !== undefined ? s.cadets : (s.cadet_count !== undefined ? s.cadet_count : 0);
-        s.is_sub10 = (cCount <= sub10Thresh);
+        const cCount = rawSec.cadets !== undefined ? rawSec.cadets : (rawSec.cadet_count !== undefined ? rawSec.cadet_count : 0);
+        const isSub10 = (cCount <= sub10Thresh);
 
-        return true;
+        // Push computed section clone
+        activeSecs.push({
+            ...rawSec,
+            is_capstone: isCap,
+            is_499: is499,
+            is_sub10: isSub10
+        });
     });
 
     // 2. Instructor attribution map

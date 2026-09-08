@@ -120,7 +120,8 @@
                 <div style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap;">
                     <label for="schoolScopeSelect" style="font-weight: 700; font-size: 13.5px; color: var(--text-main); text-transform: uppercase;">Academic School Scope:</label>
                     <select id="schoolScopeSelect" onchange="changeSchoolScope(this.value)" style="padding: 8px 16px; font-size: 14px; font-weight: 600; border-radius: 6px; border: 1px solid var(--border); background: #f8fafc; color: var(--text-main); cursor: pointer;">
-                        <option value="ALL" selected>🏛️ All Schools — USAFA Academic Division</option>
+                        <option value="ALL_DEPTS" selected>🏢 All Departments (USAFA-wide — 21 Departments)</option>
+                        <option value="ALL">🏛️ 3 Academic Schools (SINE, SIBS, HASS Aggregated)</option>
                         <option value="SINE">⚙️ SINE — School of Integrated Engineering</option>
                         <option value="SIBS">🔬 SIBS — School of Integrated Basic Sciences</option>
                         <option value="HASS">📚 HASS — School of Integrated Humanities, Arts, & Social Sciences</option>
@@ -408,7 +409,7 @@
                                 <th class="sortable" onclick="sortDeptFacultyTable('expected_tier')">Role Tier <span class="sort-icon" id="th-sort-expected_tier">↕</span></th>
                                 <th class="num sortable" onclick="sortDeptFacultyTable('weighted_sections')">Teaching Secs <span class="sort-icon" id="th-sort-weighted_sections">↕</span></th>
                                 <th class="num sortable" onclick="sortDeptFacultyTable('cadet_load_allocated')">Cadets <span class="sort-icon" id="th-sort-cadet_load_allocated">↕</span></th>
-                                <th>Relief Secs</th>
+                                <th title="Relief Sections: Non-teaching duties (Admin/Governance, Research, Lab Ops) converted into section equivalents via Dean's dual-rule. Gross Burden = Teaching Secs + Relief Secs.">Relief Secs ℹ️</th>
                                 <th class="num sortable" onclick="sortDeptFacultyTable('gross_burden')">Gross Burden <span class="sort-icon" id="th-sort-gross_burden">↕</span></th>
                                 <th class="sortable" style="text-align:center;" onclick="sortDeptFacultyTable('section_delta')">Delta <span class="sort-icon" id="th-sort-section_delta">↕</span></th>
                                 <th style="text-align:center;">Action</th>
@@ -678,16 +679,19 @@
                     <!-- Senior Capstone Catalog Numbers Tag Manager -->
                     <div style="margin-bottom:18px;">
                         <div style="font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase; margin-bottom:6px;">
-                            Senior Design Capstone Course Numbers:
+                            Senior Design Capstone Courses (Subject &amp; Course #):
                         </div>
                         <div style="font-size:12px; color:var(--text-muted); margin-bottom:8px;">
-                            Courses matching these catalog numbers (or flagged in data) are treated as Senior Capstones:
+                            Courses matching these Subject and Course Number pairs are treated as Senior Capstones:
                         </div>
                         <div id="adminCapstonesList" style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px;">
                         </div>
-                        <div style="display:flex; gap:8px; align-items:center;">
-                            <input type="text" id="adminNewCapstoneInput" placeholder="Add course # (e.g. 482)" style="padding:6px 10px; font-size:12px; border:1px solid var(--border); border-radius:6px; width:140px;" onkeydown="if(event.key==='Enter') addCapstoneCourse()">
-                            <button class="btn btn-primary" onclick="addCapstoneCourse()">+ Add Course #</button>
+                        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                            <select id="adminNewCapstoneSubject" style="padding:6px 10px; font-size:12px; border:1px solid var(--border); border-radius:6px; background:#fff; min-width:160px;">
+                                <option value="">-- Select Subject --</option>
+                            </select>
+                            <input type="text" id="adminNewCapstoneInput" placeholder="Course # (e.g. 480)" style="padding:6px 10px; font-size:12px; border:1px solid var(--border); border-radius:6px; width:130px;" onkeydown="if(event.key==='Enter') addCapstoneCourse()">
+                            <button class="btn btn-primary" onclick="addCapstoneCourse()">+ Add Capstone Course</button>
                         </div>
                     </div>
 

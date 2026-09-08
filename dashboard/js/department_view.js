@@ -334,8 +334,8 @@ function renderDepartmentFacultyTable(deptCode) {
             <td>${tierSelect}</td>
             <td class="num"><strong>${f.weighted_sections}</strong></td>
             <td class="num"><strong>${f.cadet_load_allocated}</strong></td>
-            <td style="font-size:11px; white-space:nowrap;">
-                <span title="Admin: ${f.admin_pct || 0}%, Research: ${f.research_pct || 0}%, Lab: ${f.labops_pct || 0}%">
+            <td style="font-size:11.5px; white-space:nowrap;">
+                <span title="Non-Teaching Section Equivalents (Dean's Dual-Rule):&#10;• Admin / Governance: +${(f.section_equivalents?.admin || 0).toFixed(1)} secs (${f.admin_pct || 0}%)&#10;• Sponsored Research: +${(f.section_equivalents?.research || 0).toFixed(1)} secs (${f.research_pct || 0}%)&#10;• Lab Ops / Safety: +${(f.section_equivalents?.labops || 0).toFixed(1)} secs (${f.labops_pct || 0}%)&#10;Total Non-Teaching Relief: +${reliefSec} secs&#10;Gross Burden = Teaching (${f.weighted_sections}) + Relief (+${reliefSec}) = ${grossBurden} secs" style="cursor:help; border-bottom:1px dotted var(--text-muted);">
                     +${reliefSec} secs
                 </span>
                 <button type="button" onclick="openEditFteModal('${deptCode}', ${fIdx})" style="background:none; border:none; cursor:pointer; color:var(--primary-light); font-size:12px; margin-left:4px;" title="Fine-tune FTE % allocations">✏️</button>

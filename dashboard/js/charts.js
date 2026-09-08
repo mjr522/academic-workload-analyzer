@@ -44,6 +44,7 @@ function renderExecutiveCharts(data, scope) {
     if (!data) return;
 
     const isSchoolLevel = (scope === 'ALL');
+    const isAllDepts = (scope === 'ALL_DEPTS');
     const schools = data.schools || [];
 
     if (isSchoolLevel) {
@@ -64,6 +65,29 @@ function renderExecutiveCharts(data, scope) {
         renderFacultyPieChart(schools, true);
         renderMajorsPieChart(schools, true);
         renderSub10BarChart(schools, true);
+    } else if (isAllDepts) {
+        const allDepts = (data.departments || []).filter(d => (d.total_sections > 0 || d.faculty_count > 0));
+
+        setTextSafe('titleQuadrant', 'USAFA Department Resourcing Matrix (All Academic Departments)');
+        setTextSafe('descQuadrant', 'X: Course Prep Load (Weighted Sections/Inst) | Y: Student Contact Load (Cadets/Inst) | Bubble Color: School | Bubble Size: Cadet Volume');
+        setTextSafe('titleRanking', 'Student Credit Hours Delivered by Department (All Departments)');
+        setTextSafe('descRanking', 'Total student credit volume generated across all USAFA academic departments');
+        setTextSafe('titleFacultyPie', 'Faculty Distribution by Department');
+        setTextSafe('descFacultyPie', 'Share of instructional faculty lines across all academic departments');
+        setTextSafe('titleMajorsPie', 'Declared Majors by Department');
+        setTextSafe('descMajorsPie', 'Cadet enrollment across all academic majors');
+        setTextSafe('titleSub10', 'Sections with ≤ 10 Cadets (All Departments)');
+        setTextSafe('descSub10', 'Small section proliferation and elective fragmentation across all departments');
+
+        const kpis = data.institution_kpis || data.school_kpis;
+        const avgStu = kpis ? kpis.overall_avg_stu_per_inst : 0;
+        const avgSCH = kpis ? Math.round((kpis.total_sch || 0) / Math.max(1, allDepts.length)) : 0;
+
+        renderQuadrantChart(allDepts, avgStu, false);
+        renderRankingChart(allDepts, avgSCH, false);
+        renderFacultyPieChart(allDepts, false);
+        renderMajorsPieChart(allDepts, false);
+        renderSub10BarChart(allDepts, false);
     } else {
         const targetSchool = schools.find(s => s.school_code === scope);
         const schoolDepts = (data.departments || []).filter(d => (d.school_code || 'OTHER') === scope && (d.total_sections > 0 || d.faculty_count > 0));
@@ -135,16 +159,20 @@ function renderQuadrantChart(items, yBenchmark, isSchoolLevel) {
             const fac = getFac(d);
             const xVal = isAllScope ? (d.sections_per_all_inst_mean !== undefined ? d.sections_per_all_inst_mean : d.sections_per_inst_mean) : (d.sections_per_inst_mean || 0);
             const yVal = isAllScope ? (d.students_per_all_inst_mean !== undefined ? d.students_per_all_inst_mean : d.students_per_inst_mean) : (d.students_per_inst_mean || 0);
+            const bubbleColor = (SCHOOL_COLORS && d.school_code && SCHOOL_COLORS[d.school_code])
+                ? SCHOOL_COLORS[d.school_code]
+                : (DEPT_COLORS[d.dept_code] || '#3b82f6');
             return {
                 x: xVal || 0,
                 y: yVal || 0,
                 r: Math.max(8, Math.min(26, Math.sqrt(d.total_cadet_seats || 10) * 0.45)),
                 code: d.dept_code,
                 name: d.dept_name,
+                schoolCode: d.school_code,
                 totalSeats: d.total_cadet_seats,
                 facultyCount: fac,
                 sub10Pct: d.sub10_percentage,
-                color: DEPT_COLORS[d.dept_code] || '#3b82f6'
+                color: bubbleColor
             };
         });
     }
@@ -182,7 +210,8 @@ function renderQuadrantChart(items, yBenchmark, isSchoolLevel) {
                             if (isSchoolLevel) {
                                 return `[${raw.code}] ${raw.name}: ${raw.y} ${rateUnit}, ${raw.x} ${secUnit} (${(raw.totalSeats || 0).toLocaleString()} seats, ${raw.facultyCount} ${facUnit}, ${raw.sub10Pct}% sub-10)`;
                             } else {
-                                return `${raw.code} (${raw.name}): ${raw.y} ${rateUnit}, ${raw.x} ${secUnit} (${(raw.totalSeats || 0).toLocaleString()} seats, ${raw.facultyCount} ${facUnit}, ${raw.sub10Pct}% sub-10)`;
+                                const schTag = raw.schoolCode ? `[${raw.schoolCode}] ` : '';
+                                return `${schTag}${raw.code} (${raw.name}): ${raw.y} ${rateUnit}, ${raw.x} ${secUnit} (${(raw.totalSeats || 0).toLocaleString()} seats, ${raw.facultyCount} ${facUnit}, ${raw.sub10Pct}% sub-10)`;
                             }
                         }
                     }
@@ -217,7 +246,9 @@ function renderRankingChart(items, benchmark, isSchoolLevel) {
 
     const sortedItems = [...(items || [])].sort((a, b) => b.total_sch - a.total_sch);
     const labels = sortedItems.map(item => isSchoolLevel ? (item.short_name || item.school_code) : item.dept_code);
-    const bgColors = sortedItems.map(item => isSchoolLevel ? (SCHOOL_COLORS[item.school_code] || '#3b82f6') : (DEPT_COLORS[item.dept_code] || '#3b82f6'));
+    const bgColors = sortedItems.map(item => isSchoolLevel 
+        ? (SCHOOL_COLORS[item.school_code] || '#3b82f6') 
+        : ((SCHOOL_COLORS && item.school_code && SCHOOL_COLORS[item.school_code]) || DEPT_COLORS[item.dept_code] || '#3b82f6'));
 
     rankingChartInstance = new Chart(ctx, {
         type: 'bar',
@@ -363,7 +394,9 @@ function renderSub10BarChart(items, isSchoolLevel) {
     if (activeItems.length === 0) return;
 
     const labels = activeItems.map(d => isSchoolLevel ? d.short_name : d.dept_code);
-    const bgColors = activeItems.map(d => isSchoolLevel ? (SCHOOL_COLORS[d.school_code] || '#d97706') : '#d97706');
+    const bgColors = activeItems.map(d => isSchoolLevel 
+        ? (SCHOOL_COLORS[d.school_code] || '#d97706') 
+        : ((SCHOOL_COLORS && d.school_code && SCHOOL_COLORS[d.school_code]) || '#d97706'));
 
     sub10BarChartInstance = new Chart(ctx, {
         type: 'bar',

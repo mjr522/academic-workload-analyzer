@@ -72,12 +72,27 @@ function renderAdminCurriculumControls() {
         }
     }
 
-    // Capstone Catalog Numbers Tag Manager
+    // Populate Subject dropdown for adding capstone courses
+    const capSubjSelect = document.getElementById('adminNewCapstoneSubject');
+    if (capSubjSelect && capSubjSelect.options.length <= 1) {
+        const curVal = capSubjSelect.value;
+        capSubjSelect.innerHTML = '<option value="">-- Select Subject --</option>';
+        allSubjects.forEach(sub => {
+            const opt = document.createElement('option');
+            opt.value = sub;
+            opt.textContent = sub;
+            capSubjSelect.appendChild(opt);
+        });
+        if (curVal) capSubjSelect.value = curVal;
+    }
+
+    // Capstone Catalog (Subject + Course Number) Tag Manager
     const capContainer = document.getElementById('adminCapstonesList');
     if (capContainer) {
         capContainer.innerHTML = '';
         const caps = policy.capstoneCourses || [];
-        caps.forEach(capNbr => {
+        caps.forEach(capItem => {
+            const capStr = typeof capItem === 'string' ? capItem : `${capItem.subject} ${capItem.course_nbr}`;
             const tag = document.createElement('span');
             tag.className = 'badge badge-capstone';
             tag.style.padding = '6px 12px';
@@ -85,7 +100,8 @@ function renderAdminCurriculumControls() {
             tag.style.display = 'inline-flex';
             tag.style.alignItems = 'center';
             tag.style.gap = '8px';
-            tag.innerHTML = `<span><strong>${capNbr}</strong></span><button type="button" onclick="removeCapstoneCourse('${capNbr}')" style="background:none; border:none; color:#6b21a8; font-size:14px; font-weight:bold; cursor:pointer; padding:0 2px;">&times;</button>`;
+            const escapedStr = capStr.replace(/'/g, "\\'");
+            tag.innerHTML = `<span><strong>${capStr}</strong></span><button type="button" onclick="removeCapstoneCourse('${escapedStr}')" style="background:none; border:none; color:#6b21a8; font-size:14px; font-weight:bold; cursor:pointer; padding:0 2px;" title="Remove ${capStr} from capstones">&times;</button>`;
             capContainer.appendChild(tag);
         });
     }
@@ -135,27 +151,49 @@ function filterAdminSubjects() {
 }
 
 function addCapstoneCourse() {
+    const subjSelect = document.getElementById('adminNewCapstoneSubject');
     const input = document.getElementById('adminNewCapstoneInput');
-    if (!input) return;
-    const val = input.value.trim().toUpperCase().replace(/\D/g, '');
-    if (!val) return;
+    if (!subjSelect || !input) return;
 
+    const subj = subjSelect.value.trim().toUpperCase();
+    const num = input.value.trim().toUpperCase();
+
+    if (!subj) {
+        alert("Please select a Subject from the dropdown.");
+        return;
+    }
+    if (!num) {
+        alert("Please enter a Course Number (e.g. 480).");
+        return;
+    }
+
+    const val = `${subj} ${num}`;
     const policy = window.workbenchState.policy;
     if (!policy.capstoneCourses) policy.capstoneCourses = [];
-    if (!policy.capstoneCourses.includes(val)) {
+
+    const exists = policy.capstoneCourses.some(c => {
+        const str = typeof c === 'string' ? c : `${c.subject} ${c.course_nbr}`;
+        return str.trim().toUpperCase() === val;
+    });
+
+    if (!exists) {
         policy.capstoneCourses.push(val);
         input.value = '';
         recomputeWorkbenchMetrics();
         renderAdminCurriculumControls();
     } else {
-        alert(`Course number ${val} is already in the capstone list.`);
+        alert(`Capstone course "${val}" is already in the capstone list.`);
     }
 }
 
 function removeCapstoneCourse(val) {
     const policy = window.workbenchState.policy;
     if (!policy.capstoneCourses) return;
-    policy.capstoneCourses = policy.capstoneCourses.filter(c => String(c) !== String(val));
+    const target = String(val).trim().toUpperCase();
+    policy.capstoneCourses = policy.capstoneCourses.filter(c => {
+        const str = typeof c === 'string' ? c : `${c.subject} ${c.course_nbr}`;
+        return str.trim().toUpperCase() !== target;
+    });
     recomputeWorkbenchMetrics();
     renderAdminCurriculumControls();
 }
@@ -332,7 +370,12 @@ function resetPolicyToDefaults() {
 
     window.workbenchState.policy = {
         includedSubjects: Array.from(allSubjectsSet),
-        capstoneCourses: ['480', '481', '491', '492', '463', '464', '451', '452'],
+        capstoneCourses: [
+            'AEROENGR 480', 'AEROENGR 481', 'BEHSCI 498', 'CIVENGR 451', 'COMPSCI 453',
+            'CYBERSCI 438', 'DATASCI 421', 'ECE 463', 'ENGLISH 489', 'GEO 497',
+            'LDRSHP 400', 'LDRSHP 400X', 'MATH 420', 'MECHENGR 491', 'MGT 472', 'OPSRSCH 421',
+            'PHYSICS 490', 'POLSCI 491', 'SYSENGR 491'
+        ],
         excludeCapstones: true,
         exclude499s: true,
         sub10Threshold: 10,

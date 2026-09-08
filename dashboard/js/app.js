@@ -4,7 +4,7 @@
  */
 
 let currentActiveTab = 'tab-executive';
-let currentSchoolScope = 'ALL';
+let currentSchoolScope = 'ALL_DEPTS';
 let excludeCapstones = true;
 let exclude499s = true;
 let currentFacultyScope = 'TEACHING'; // 'TEACHING' | 'ALL'
@@ -562,9 +562,12 @@ function updateSchoolDeanBadge(data, scope) {
     if (!badge || !data) return;
 
     const schools = data.schools || [];
-    if (scope === 'ALL') {
-        const numActiveDepts = (data.departments || []).filter(d => d.total_sections > 0).length;
+    if (scope === 'ALL_DEPTS') {
+        const numActiveDepts = (data.departments || []).filter(d => (d.total_sections > 0 || d.faculty_count > 0)).length;
         badge.innerHTML = `USAFA Academic Division (${schools.length || 3} Schools | ${numActiveDepts} Active Departments)`;
+    } else if (scope === 'ALL') {
+        const numActiveDepts = (data.departments || []).filter(d => (d.total_sections > 0 || d.faculty_count > 0)).length;
+        badge.innerHTML = `USAFA Academic Division (${schools.length || 3} Schools Aggregated | ${numActiveDepts} Active Departments)`;
     } else {
         const s = schools.find(item => item.school_code === scope);
         if (s) {
@@ -582,7 +585,7 @@ function updateExecutiveKPIs(data, scope) {
     if (!data) return;
 
     let kpis;
-    if (scope === 'ALL') {
+    if (scope === 'ALL' || scope === 'ALL_DEPTS') {
         kpis = data.institution_kpis || data.school_kpis;
     } else {
         const s = (data.schools || []).find(item => item.school_code === scope);
