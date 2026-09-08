@@ -46,6 +46,14 @@ def main():
         help="Path to one or more official department roster or Acad Org CSV files to map faculty & billets"
     )
     parser.add_argument(
+        "--compact", action="store_true",
+        help="Export compact JSON without indentation to minimize file size"
+    )
+    parser.add_argument(
+        "--include-modes", action="store_true",
+        help="Pre-calculate and export legacy static mode snapshots (significantly increases file size)"
+    )
+    parser.add_argument(
         "--quiet", "-q", action="store_true",
         help="Suppress terminal summary output"
     )
@@ -90,9 +98,17 @@ def main():
         n_loaded = roster_mgr.load_roster_files(args.roster)
         print(f"[OK] Ingested {n_loaded} faculty entries from official roster / Acad Org file(s)")
 
-    # Compute Metrics (Pre-calculating all 4 modes: core, no_capstones, no_499s, all)
+    # Compute Metrics
     engine = MetricsEngine(sections_list, reg_parser.cadets, roster_manager=roster_mgr)
-    results = engine.compute_all_modes()
+    if args.include_modes:
+        print("Computing pre-calculated mode combinations (legacy static mode)...")
+        results = engine.compute_all_modes()
+    else:
+        # Master single-pass: includes all sections with flags so the interactive browser workbench can toggle in real time
+        print("Computing master workload baseline for interactive browser workbench...")
+        engine.exclude_capstones = False
+        engine.exclude_499s = False
+        results = engine.compute_all_metrics()
 
     # Export JSON Contract
     meta_info = {
@@ -103,8 +119,9 @@ def main():
     }
     json_path = os.path.join(args.output_dir, "workload_data.json")
     exporter = ExportEngine(results, meta_info)
-    exporter.export_json(json_path)
-    print(f"\n[OK] Exported Web Dashboard JSON to: {os.path.abspath(json_path)}")
+    exporter.export_json(json_path, compact=args.compact)
+    file_size_mb = os.path.getsize(json_path) / (1024 * 1024)
+    print(f"\n[OK] Exported Web Dashboard JSON ({file_size_mb:.2f} MB) to: {os.path.abspath(json_path)}")
 
     # Generate Starter Rosters
     if not args.no_rosters:

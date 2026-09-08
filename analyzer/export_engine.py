@@ -66,9 +66,13 @@ class ExportEngine:
         payload['default_policy'] = default_policy
         return payload
 
-    def export_json(self, output_path: str) -> str:
+    def export_json(self, output_path: str, compact: bool = False) -> str:
         os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
         payload = self.build_payload()
         with open(output_path, 'w', encoding='utf-8') as f:
-            json.dump(payload, f, indent=2)
+            if compact:
+                json.dump(payload, f, separators=(',', ':'))
+            else:
+                json.dump(payload, f, indent=2)
         return output_path
+
