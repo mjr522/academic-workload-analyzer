@@ -2,21 +2,91 @@
  * Faculty Workload Directory Controller
  */
 
+let currentFacultySort = { col: 'instructor', dir: 'asc' };
+
+function sortFacultyDirectory(colKey) {
+    if (currentFacultySort.col === colKey) {
+        currentFacultySort.dir = currentFacultySort.dir === 'desc' ? 'asc' : 'desc';
+    } else {
+        currentFacultySort.col = colKey;
+        // Default descending for numeric columns
+        currentFacultySort.dir = ['weighted_sections', 'section_delta', 'cadet_load_allocated', 'total_cadet_seats', 'avg_section_size'].includes(colKey) ? 'desc' : 'asc';
+    }
+    renderFacultyDirectory();
+}
+
+function updateFacultySortIcons() {
+    const cols = ['instructor', 'school_code', 'primary_dept', 'billet_status', 'expected_tier', 'weighted_sections', 'section_delta', 'cadet_load_allocated', 'total_cadet_seats', 'avg_section_size'];
+    cols.forEach(c => {
+        const el = document.getElementById(`th-facsort-${c}`);
+        const th = el ? el.closest('th') : null;
+        if (el) {
+            if (currentFacultySort.col === c) {
+                el.textContent = currentFacultySort.dir === 'desc' ? '▼' : '▲';
+                if (th) {
+                    th.classList.remove('sorted-desc', 'sorted-asc');
+                    th.classList.add(currentFacultySort.dir === 'desc' ? 'sorted-desc' : 'sorted-asc');
+                }
+            } else {
+                el.textContent = '↕';
+                if (th) th.classList.remove('sorted-desc', 'sorted-asc');
+            }
+        }
+    });
+}
+
+function onFacultySchoolFilterChange() {
+    const school = (document.getElementById('facultySchoolFilter') ? document.getElementById('facultySchoolFilter').value : 'ALL');
+    const deptSel = document.getElementById('facultyDeptFilter');
+    const data = (typeof getActiveWorkloadData === 'function') ? getActiveWorkloadData() : window.currentWorkloadData;
+    if (deptSel && data && data.departments) {
+        const currentDept = deptSel.value;
+        deptSel.innerHTML = '<option value="ALL">All Departments</option>';
+        const filteredDepts = school === 'ALL' 
+            ? data.departments 
+            : data.departments.filter(d => (d.school_code || 'OTHER') === school);
+        filteredDepts.forEach(d => {
+            const opt = document.createElement('option');
+            opt.value = d.dept_code;
+            opt.textContent = `${d.dept_code} — ${d.dept_name}`;
+            deptSel.appendChild(opt);
+        });
+        if (filteredDepts.some(d => d.dept_code === currentDept)) {
+            deptSel.value = currentDept;
+        } else {
+            deptSel.value = 'ALL';
+        }
+    }
+    renderFacultyDirectory();
+}
+
 function renderFacultyDirectory() {
-    const data = window.currentWorkloadData;
+    const data = (typeof getActiveWorkloadData === 'function') ? getActiveWorkloadData() : window.currentWorkloadData;
     if (!data) return;
 
     const tbody = document.getElementById('facultyTbody');
     if (!tbody) return;
     tbody.innerHTML = '';
 
+    updateFacultySortIcons();
+
     const q = (document.getElementById('facultySearch') ? document.getElementById('facultySearch').value : '').toLowerCase();
     const schoolFilter = (document.getElementById('facultySchoolFilter') ? document.getElementById('facultySchoolFilter').value : 'ALL');
+    const deptFilter = (document.getElementById('facultyDeptFilter') ? document.getElementById('facultyDeptFilter').value : 'ALL');
 
     let list = data.faculty_directory || [];
 
+    // Scope filter (Teaching Only vs All Billets)
+    if (typeof currentFacultyScope !== 'undefined' && currentFacultyScope === 'TEACHING') {
+        list = list.filter(f => f.weighted_sections > 0);
+    }
+
     if (schoolFilter !== 'ALL') {
         list = list.filter(f => (f.school_code || 'OTHER') === schoolFilter);
+    }
+
+    if (deptFilter !== 'ALL') {
+        list = list.filter(f => f.primary_dept === deptFilter);
     }
 
     if (q) {
@@ -31,6 +101,22 @@ function renderFacultyDirectory() {
         tbody.innerHTML = '<tr><td colspan="11" style="text-align:center; color:#64748b; padding:16px;">No matching faculty found.</td></tr>';
         return;
     }
+
+    // Sort list
+    list.sort((a, b) => {
+        let valA, valB;
+        const col = currentFacultySort.col;
+        if (['weighted_sections', 'section_delta', 'cadet_load_allocated', 'total_cadet_seats', 'avg_section_size'].includes(col)) {
+            valA = Number(a[col] !== undefined ? a[col] : 0);
+            valB = Number(b[col] !== undefined ? b[col] : 0);
+        } else {
+            valA = String(a[col] || '').toLowerCase();
+            valB = String(b[col] || '').toLowerCase();
+        }
+        if (valA < valB) return currentFacultySort.dir === 'asc' ? -1 : 1;
+        if (valA > valB) return currentFacultySort.dir === 'asc' ? 1 : -1;
+        return 0;
+    });
 
     list.forEach((f, idx) => {
         const displayName = window.maskFacultyNames ? `Faculty ${String(idx + 1).padStart(2, '0')}` : f.instructor;

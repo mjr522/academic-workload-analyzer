@@ -5,6 +5,9 @@
 
 let currentActiveTab = 'tab-executive';
 let currentSchoolScope = 'ALL';
+let excludeCapstones = true;
+let exclude499s = true;
+let currentFacultyScope = 'TEACHING'; // 'TEACHING' | 'ALL'
 
 document.addEventListener('DOMContentLoaded', () => {
     initApp();
@@ -21,7 +24,20 @@ function initApp() {
         fileInput.addEventListener('change', handleFileSelect);
     }
 
-    // 3. Attempt to auto-fetch pre-baked workload_data.json
+    // 3. Setup privacy masking button
+    const privBtn = document.getElementById('privacyToggleBtn');
+    if (privBtn) {
+        privBtn.addEventListener('click', () => {
+            window.maskFacultyNames = !window.maskFacultyNames;
+            privBtn.classList.toggle('active', window.maskFacultyNames);
+            privBtn.innerHTML = window.maskFacultyNames 
+                ? '🔒 Names Masked (Public Presentation View)' 
+                : '👁️ Names Visible (Internal View)';
+            refreshAllViews();
+        });
+    }
+
+    // 4. Attempt to auto-fetch pre-baked workload_data.json
     tryAutoLoadData();
 }
 
@@ -80,7 +96,7 @@ function processJsonFile(file) {
     reader.onload = (event) => {
         try {
             const data = JSON.parse(event.target.result);
-            if (!data.school_kpis && !data.institution_kpis) {
+            if (!data.school_kpis && !data.institution_kpis && !data.modes) {
                 alert("Error: The selected JSON file does not appear to be a valid workload_data.json export.");
                 return;
             }
@@ -98,6 +114,73 @@ function processJsonFile(file) {
     reader.readAsText(file);
 }
 
+/**
+ * Returns the currently active data snapshot based on Capstone and 499 exclusion toggles.
+ */
+function getActiveWorkloadData() {
+    if (!window.currentWorkloadData) return null;
+    const root = window.currentWorkloadData;
+    if (!root.modes) {
+        return root;
+    }
+
+    let modeKey = 'core';
+    if (excludeCapstones && exclude499s) modeKey = 'core';
+    else if (excludeCapstones && !exclude499s) modeKey = 'no_capstones';
+    else if (!excludeCapstones && exclude499s) modeKey = 'no_499s';
+    else modeKey = 'all';
+
+    const modeData = root.modes[modeKey] || root.modes['core'] || root;
+    return {
+        ...root,
+        ...modeData,
+        activeMode: modeKey,
+        sections_audit: root.sections_audit || []
+    };
+}
+
+function toggleCapstonesFilter() {
+    excludeCapstones = !excludeCapstones;
+    const btn = document.getElementById('toggleCapstonesBtn');
+    const icon = document.getElementById('capstoneIcon');
+    const label = document.getElementById('capstoneLabel');
+    if (btn) {
+        btn.className = `filter-toggle-btn ${excludeCapstones ? 'excluded' : 'included'}`;
+    }
+    if (icon) icon.textContent = excludeCapstones ? '🚫' : '⚠️';
+    if (label) label.textContent = excludeCapstones ? 'Capstones: Excluded' : 'Capstones: Included';
+    refreshAllViews();
+}
+
+function toggle499sFilter() {
+    exclude499s = !exclude499s;
+    const btn = document.getElementById('toggle499sBtn');
+    const icon = document.getElementById('study499Icon');
+    const label = document.getElementById('study499Label');
+    if (btn) {
+        btn.className = `filter-toggle-btn ${exclude499s ? 'excluded' : 'included'}`;
+    }
+    if (icon) icon.textContent = exclude499s ? '🚫' : '⚠️';
+    if (label) label.textContent = exclude499s ? '499s: Excluded' : '499s: Included';
+    refreshAllViews();
+}
+
+function setFacultyScope(scope) {
+    currentFacultyScope = scope;
+    const btnTeaching = document.getElementById('btnScopeTeaching');
+    const btnAll = document.getElementById('btnScopeAll');
+    if (btnTeaching && btnAll) {
+        if (scope === 'TEACHING') {
+            btnTeaching.classList.add('active');
+            btnAll.classList.remove('active');
+        } else {
+            btnAll.classList.add('active');
+            btnTeaching.classList.remove('active');
+        }
+    }
+    refreshAllViews();
+}
+
 function loadDataset(data) {
     window.currentWorkloadData = data;
 
@@ -110,36 +193,95 @@ function loadDataset(data) {
         currentSchoolScope = scopeSelect.value || 'ALL';
     }
 
+    // Populate department filters in department, faculty, and what-if tabs
+    const initialSnapshot = getActiveWorkloadData();
+    populateDeptDropdowns(initialSnapshot.departments);
+
     try {
-        updateExecutiveKPIs(data, currentSchoolScope);
-        updateSchoolDeanBadge(data, currentSchoolScope);
-        renderExecutiveCharts(data, currentSchoolScope);
+        if (typeof initWhatIfSandbox === 'function') {
+            initWhatIfSandbox();
+        }
     } catch (e) {
-        console.error("Error in executive charts/KPIs:", e);
+        console.error("Error initializing whatif sandbox:", e);
     }
 
-    try { initDepartmentDropdown(data.departments); } catch (e) { console.error("Error in initDepartmentDropdown:", e); }
-    try { renderCurriculumView(); } catch (e) { console.error("Error in renderCurriculumView:", e); }
-    try { renderFacultyDirectory(); } catch (e) { console.error("Error in renderFacultyDirectory:", e); }
-    try { initWhatIfSandbox(); } catch (e) { console.error("Error in initWhatIfSandbox:", e); }
+    refreshAllViews();
 
     // Show data loaded banner
     const banner = document.getElementById('dataLoadedBadge');
     if (banner) {
-        const kpis = data.institution_kpis || data.school_kpis || {};
-        const termStr = (data.meta && data.meta.terms && data.meta.terms.length > 0) ? data.meta.terms.join(', ') : 'Active';
+        const kpis = initialSnapshot.institution_kpis || initialSnapshot.school_kpis || {};
+        const termStr = (initialSnapshot.meta && initialSnapshot.meta.terms && initialSnapshot.meta.terms.length > 0) ? initialSnapshot.meta.terms.join(', ') : 'Active';
         banner.style.display = 'inline-flex';
         banner.textContent = `Data Loaded: ${(kpis.total_sections || 0).toLocaleString()} Sections (${termStr})`;
     }
 }
 
+function populateDeptDropdowns(departments) {
+    if (!departments) return;
+    try { initDepartmentDropdown(departments); } catch (e) { console.error("Error in initDepartmentDropdown:", e); }
+
+    // Populate faculty tab dept filter
+    const fDeptSel = document.getElementById('facultyDeptFilter');
+    if (fDeptSel) {
+        const currentVal = fDeptSel.value || 'ALL';
+        fDeptSel.innerHTML = '<option value="ALL">All Departments</option>';
+        departments.forEach(d => {
+            const opt = document.createElement('option');
+            opt.value = d.dept_code;
+            opt.textContent = `${d.dept_code} — ${d.dept_name}`;
+            fDeptSel.appendChild(opt);
+        });
+        fDeptSel.value = currentVal;
+    }
+
+    // Populate what-if tab dept filter
+    const wDeptSel = document.getElementById('whatifDeptFilter');
+    if (wDeptSel) {
+        const currentVal = wDeptSel.value || 'ALL';
+        wDeptSel.innerHTML = '<option value="ALL">All Departments</option>';
+        departments.forEach(d => {
+            const opt = document.createElement('option');
+            opt.value = d.dept_code;
+            opt.textContent = `${d.dept_code} — ${d.dept_name}`;
+            wDeptSel.appendChild(opt);
+        });
+        wDeptSel.value = currentVal;
+    }
+}
+
+function refreshAllViews() {
+    const data = getActiveWorkloadData();
+    if (!data) return;
+
+    try {
+        updateExecutiveKPIs(data, currentSchoolScope);
+        updateSchoolDeanBadge(data, currentSchoolScope);
+        renderExecutiveCharts(data, currentSchoolScope);
+    } catch (e) {
+        console.error("Error updating executive views:", e);
+    }
+
+    if (currentActiveTab === 'tab-department') {
+        const sel = document.getElementById('deptSelect');
+        if (sel && sel.value) renderDepartmentDetails(sel.value);
+    } else if (currentActiveTab === 'tab-curriculum') {
+        renderCurriculumView();
+    } else if (currentActiveTab === 'tab-faculty') {
+        renderFacultyDirectory();
+    } else if (currentActiveTab === 'tab-whatif') {
+        renderWhatIfFacultyTable();
+    }
+}
+
 function changeSchoolScope(scope) {
     currentSchoolScope = scope;
-    if (!window.currentWorkloadData) return;
+    const data = getActiveWorkloadData();
+    if (!data) return;
 
-    updateExecutiveKPIs(window.currentWorkloadData, currentSchoolScope);
-    updateSchoolDeanBadge(window.currentWorkloadData, currentSchoolScope);
-    renderExecutiveCharts(window.currentWorkloadData, currentSchoolScope);
+    updateExecutiveKPIs(data, currentSchoolScope);
+    updateSchoolDeanBadge(data, currentSchoolScope);
+    renderExecutiveCharts(data, currentSchoolScope);
 }
 
 function updateSchoolDeanBadge(data, scope) {
@@ -153,7 +295,10 @@ function updateSchoolDeanBadge(data, scope) {
     } else {
         const s = schools.find(item => item.school_code === scope);
         if (s) {
-            badge.innerHTML = `<strong>${s.school_name || s.short_name}</strong> | ${s.departments_count} Departments | ${s.faculty_count} Faculty`;
+            const facDisplay = currentFacultyScope === 'ALL'
+                ? `${s.all_billets_count || s.faculty_count} Total Billets`
+                : `${s.teaching_faculty_count || s.faculty_count} Teaching Faculty`;
+            badge.innerHTML = `<strong>${s.school_name || s.short_name}</strong> | ${s.departments_count} Departments | ${facDisplay}`;
         } else {
             badge.innerHTML = `School Scope: ${scope}`;
         }
@@ -171,7 +316,7 @@ function updateExecutiveKPIs(data, scope) {
         if (s) {
             kpis = {
                 total_cadet_seats: s.total_cadet_seats,
-                unique_faculty_count: s.faculty_count,
+                unique_faculty_count: currentFacultyScope === 'ALL' ? (s.all_billets_count || s.faculty_count) : (s.teaching_faculty_count || s.faculty_count),
                 total_sections: s.total_sections,
                 total_sch: s.total_sch,
                 overall_avg_section_size: s.overall_avg_section_size,
@@ -188,8 +333,12 @@ function updateExecutiveKPIs(data, scope) {
         if (el) el.textContent = (val !== null && val !== undefined) ? val : '-';
     };
 
+    const facCount = currentFacultyScope === 'ALL'
+        ? (kpis.all_billets_count !== undefined ? kpis.all_billets_count : (kpis.unique_faculty_count || kpis.faculty_count || 0))
+        : (kpis.teaching_faculty_count !== undefined ? kpis.teaching_faculty_count : (kpis.unique_faculty_count || kpis.faculty_count || 0));
+
     setVal('kpiTotalCadets', (kpis.total_cadet_seats || 0).toLocaleString());
-    setVal('kpiFacultyCount', kpis.unique_faculty_count !== undefined ? kpis.unique_faculty_count : (kpis.faculty_count || 0));
+    setVal('kpiFacultyCount', facCount);
     setVal('kpiTotalSections', (kpis.total_sections || 0).toLocaleString());
     setVal('kpiTotalSCH', Math.round(kpis.total_sch || 0).toLocaleString());
     setVal('kpiAvgSecSize', kpis.overall_avg_section_size || 0);
@@ -210,10 +359,12 @@ function switchTab(tabId) {
     const targetBtn = document.getElementById(`btn-${tabId}`);
     if (targetBtn) targetBtn.classList.add('active');
 
+    const data = getActiveWorkloadData();
+
     // Tab-specific refreshes
-    if (tabId === 'tab-executive' && window.currentWorkloadData) {
-        renderExecutiveCharts(window.currentWorkloadData, currentSchoolScope);
-    } else if (tabId === 'tab-department' && window.currentWorkloadData) {
+    if (tabId === 'tab-executive' && data) {
+        renderExecutiveCharts(data, currentSchoolScope);
+    } else if (tabId === 'tab-department' && data) {
         const sel = document.getElementById('deptSelect');
         if (sel && sel.value) renderDepartmentDetails(sel.value);
     } else if (tabId === 'tab-curriculum') {

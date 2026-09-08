@@ -35,6 +35,14 @@ function filterAndRenderCurriculumTable() {
         allScopeList = allScopeList.filter(s => (s.school_code || 'OTHER') === schoolFilter);
     }
 
+    // Respect global exclusions unless the user explicitly filtered for capstones
+    if (typeof excludeCapstones !== 'undefined' && excludeCapstones && curriculumFilterMode !== 'capstone') {
+        allScopeList = allScopeList.filter(s => !s.is_capstone);
+    }
+    if (typeof exclude499s !== 'undefined' && exclude499s) {
+        allScopeList = allScopeList.filter(s => !s.is_499);
+    }
+
     // Update KPI counters for this school scope
     const sub10Scope = allScopeList.filter(s => s.is_sub10);
     const capstoneScope = allScopeList.filter(s => s.is_capstone);
@@ -56,7 +64,9 @@ function filterAndRenderCurriculumTable() {
     if (curriculumFilterMode === 'sub10') {
         list = list.filter(s => s.is_sub10);
     } else if (curriculumFilterMode === 'capstone') {
-        list = list.filter(s => s.is_capstone);
+        // If clicking capstone filter, show capstones from master dataset
+        const masterCapstones = (data.sections_audit || []).filter(s => s.is_capstone && (schoolFilter === 'ALL' || (s.school_code || 'OTHER') === schoolFilter));
+        list = masterCapstones;
     }
 
     if (q) {
@@ -78,7 +88,8 @@ function filterAndRenderCurriculumTable() {
         const tr = document.createElement('tr');
         let badges = '';
         if (s.is_sub10) badges += '<span class="badge badge-sub10">≤ 10 Cadets</span> ';
-        if (s.is_capstone) badges += '<span class="badge badge-capstone">Capstone</span>';
+        if (s.is_capstone) badges += '<span class="badge badge-capstone">Capstone</span> ';
+        if (s.is_499) badges += '<span class="badge" style="background:#e0f2fe; color:#0369a1; font-weight:700;">499 Ind Study</span> ';
 
         tr.innerHTML = `
             <td><strong>${s.term || '2268'}</strong></td>

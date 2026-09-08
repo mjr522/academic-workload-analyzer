@@ -73,6 +73,11 @@ def main():
         print(f"  - Ingesting: {os.path.basename(fp)}")
         reg_parser.parse_file(fp)
 
+    # Merge cross-listed / co-convened course sections
+    merged_count = reg_parser.merge_cross_listed_sections()
+    if merged_count > 0:
+        print(f"[OK] Merged {merged_count} cross-listed co-convened sections into unified courses")
+
     sections_list = list(reg_parser.sections.values())
     print(f"Total Unique Sections Ingested: {len(sections_list):,}")
     print(f"Total Unique Cadets Ingested:   {len(reg_parser.cadets):,}")
@@ -85,9 +90,9 @@ def main():
         n_loaded = roster_mgr.load_roster_files(args.roster)
         print(f"[OK] Ingested {n_loaded} faculty entries from official roster / Acad Org file(s)")
 
-    # Compute Metrics
+    # Compute Metrics (Pre-calculating all 4 modes: core, no_capstones, no_499s, all)
     engine = MetricsEngine(sections_list, reg_parser.cadets, roster_manager=roster_mgr)
-    results = engine.compute_all_metrics()
+    results = engine.compute_all_modes()
 
     # Export JSON Contract
     meta_info = {

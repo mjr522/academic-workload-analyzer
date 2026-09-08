@@ -33,7 +33,8 @@ class TestMultiSchoolArchitecture(unittest.TestCase):
         self.assertIn('HASS', SCHOOL_METADATA)
 
         sine = SCHOOL_METADATA['SINE']
-        self.assertEqual(sine['dean'], 'Dean of Engineering Sciences')
+        self.assertEqual(sine['name'], 'School of Integrated Engineering')
+        self.assertEqual(sine['dean'], 'Dean of Engineering')
         self.assertIn('ESME', sine['departments'])
         self.assertIn('ESAN', sine['departments'])
         self.assertIn('ESECE', sine['departments'])

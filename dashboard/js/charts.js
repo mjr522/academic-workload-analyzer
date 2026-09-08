@@ -104,35 +104,57 @@ function renderQuadrantChart(items, yBenchmark, isSchoolLevel) {
     const ctx = canvas.getContext('2d');
     if (quadrantChartInstance) quadrantChartInstance.destroy();
 
-    const activeItems = (items || []).filter(d => (isSchoolLevel || d.dept_code !== 'ESIS') && (d.faculty_count > 0 || d.total_sections > 0));
+    const isAllScope = (typeof currentFacultyScope !== 'undefined' && currentFacultyScope === 'ALL');
+    const getFac = (d) => isAllScope 
+        ? (d.all_billets_count !== undefined ? d.all_billets_count : d.faculty_count)
+        : (d.teaching_faculty_count !== undefined ? d.teaching_faculty_count : d.faculty_count);
+
+    const activeItems = (items || []).filter(d => (isSchoolLevel || d.dept_code !== 'ESIS') && (getFac(d) > 0 || d.total_sections > 0));
     if (activeItems.length === 0) return;
 
     let bubbleData;
     if (isSchoolLevel) {
-        bubbleData = activeItems.map(s => ({
-            x: s.sections_per_inst_mean || 0,
-            y: s.students_per_inst_mean || 0,
-            r: Math.max(14, Math.min(36, Math.sqrt(s.total_cadet_seats || 10) * 0.22)),
-            code: s.school_code,
-            name: s.school_name,
-            totalSeats: s.total_cadet_seats,
-            facultyCount: s.faculty_count,
-            sub10Pct: s.sub10_percentage,
-            color: SCHOOL_COLORS[s.school_code] || '#2563eb'
-        }));
+        bubbleData = activeItems.map(s => {
+            const fac = getFac(s);
+            const xVal = isAllScope ? (s.sections_per_all_inst_mean !== undefined ? s.sections_per_all_inst_mean : s.sections_per_inst_mean) : (s.sections_per_inst_mean || 0);
+            const yVal = isAllScope ? (s.students_per_all_inst_mean !== undefined ? s.students_per_all_inst_mean : s.students_per_inst_mean) : (s.students_per_inst_mean || 0);
+            return {
+                x: xVal || 0,
+                y: yVal || 0,
+                r: Math.max(14, Math.min(36, Math.sqrt(s.total_cadet_seats || 10) * 0.22)),
+                code: s.school_code,
+                name: s.school_name,
+                totalSeats: s.total_cadet_seats,
+                facultyCount: fac,
+                sub10Pct: s.sub10_percentage,
+                color: SCHOOL_COLORS[s.school_code] || '#2563eb'
+            };
+        });
     } else {
-        bubbleData = activeItems.map(d => ({
-            x: d.sections_per_inst_mean || 0,
-            y: d.students_per_inst_mean || 0,
-            r: Math.max(8, Math.min(26, Math.sqrt(d.total_cadet_seats || 10) * 0.45)),
-            code: d.dept_code,
-            name: d.dept_name,
-            totalSeats: d.total_cadet_seats,
-            facultyCount: d.faculty_count,
-            sub10Pct: d.sub10_percentage,
-            color: DEPT_COLORS[d.dept_code] || '#3b82f6'
-        }));
+        bubbleData = activeItems.map(d => {
+            const fac = getFac(d);
+            const xVal = isAllScope ? (d.sections_per_all_inst_mean !== undefined ? d.sections_per_all_inst_mean : d.sections_per_inst_mean) : (d.sections_per_inst_mean || 0);
+            const yVal = isAllScope ? (d.students_per_all_inst_mean !== undefined ? d.students_per_all_inst_mean : d.students_per_inst_mean) : (d.students_per_inst_mean || 0);
+            return {
+                x: xVal || 0,
+                y: yVal || 0,
+                r: Math.max(8, Math.min(26, Math.sqrt(d.total_cadet_seats || 10) * 0.45)),
+                code: d.dept_code,
+                name: d.dept_name,
+                totalSeats: d.total_cadet_seats,
+                facultyCount: fac,
+                sub10Pct: d.sub10_percentage,
+                color: DEPT_COLORS[d.dept_code] || '#3b82f6'
+            };
+        });
     }
+
+    const xAxisTitle = isAllScope 
+        ? 'Weighted Sections / Total Billets' 
+        : 'Weighted Sections / Teaching Faculty (Prep Load)';
+    const yAxisTitle = isAllScope 
+        ? 'Cadet Contact Load / Total Billets' 
+        : 'Cadet Contact Load / Teaching Faculty';
 
     quadrantChartInstance = new Chart(ctx, {
         type: 'bubble',
@@ -154,10 +176,13 @@ function renderQuadrantChart(items, yBenchmark, isSchoolLevel) {
                     callbacks: {
                         label: function(context) {
                             const raw = context.raw;
+                            const facUnit = isAllScope ? 'total billets' : 'teaching faculty';
+                            const rateUnit = isAllScope ? 'cadets/billet' : 'cadets/inst';
+                            const secUnit = isAllScope ? 'secs/billet' : 'secs/inst';
                             if (isSchoolLevel) {
-                                return `[${raw.code}] ${raw.name}: ${raw.y} cadets/inst, ${raw.x} secs/inst (${(raw.totalSeats || 0).toLocaleString()} seats, ${raw.facultyCount} faculty, ${raw.sub10Pct}% sub-10)`;
+                                return `[${raw.code}] ${raw.name}: ${raw.y} ${rateUnit}, ${raw.x} ${secUnit} (${(raw.totalSeats || 0).toLocaleString()} seats, ${raw.facultyCount} ${facUnit}, ${raw.sub10Pct}% sub-10)`;
                             } else {
-                                return `${raw.code} (${raw.name}): ${raw.y} cadets/inst, ${raw.x} secs/inst (${(raw.totalSeats || 0).toLocaleString()} seats, ${raw.facultyCount} faculty, ${raw.sub10Pct}% sub-10)`;
+                                return `${raw.code} (${raw.name}): ${raw.y} ${rateUnit}, ${raw.x} ${secUnit} (${(raw.totalSeats || 0).toLocaleString()} seats, ${raw.facultyCount} ${facUnit}, ${raw.sub10Pct}% sub-10)`;
                             }
                         }
                     }
@@ -165,11 +190,11 @@ function renderQuadrantChart(items, yBenchmark, isSchoolLevel) {
             },
             scales: {
                 x: {
-                    title: { display: true, text: 'Weighted Sections / Instructor (Prep Load)', font: { weight: 'bold' } },
+                    title: { display: true, text: xAxisTitle, font: { weight: 'bold' } },
                     grid: { color: '#f1f5f9' }
                 },
                 y: {
-                    title: { display: true, text: 'Cadet Contact Load / Instructor', font: { weight: 'bold' } },
+                    title: { display: true, text: yAxisTitle, font: { weight: 'bold' } },
                     grid: { color: '#f1f5f9' }
                 }
             }
@@ -239,10 +264,15 @@ function renderFacultyPieChart(items, isSchoolLevel) {
     const ctx = canvas.getContext('2d');
     if (facultyPieChartInstance) facultyPieChartInstance.destroy();
 
-    const activeItems = (items || []).filter(d => d.faculty_count > 0);
+    const isAllScope = (typeof currentFacultyScope !== 'undefined' && currentFacultyScope === 'ALL');
+    const getFac = (d) => isAllScope 
+        ? (d.all_billets_count !== undefined ? d.all_billets_count : d.faculty_count)
+        : (d.teaching_faculty_count !== undefined ? d.teaching_faculty_count : d.faculty_count);
+
+    const activeItems = (items || []).filter(d => getFac(d) > 0);
     if (activeItems.length === 0) return;
 
-    const labels = activeItems.map(d => isSchoolLevel ? `${d.short_name} (${d.faculty_count})` : `${d.dept_code} (${d.faculty_count})`);
+    const labels = activeItems.map(d => isSchoolLevel ? `${d.short_name} (${getFac(d)})` : `${d.dept_code} (${getFac(d)})`);
     const bgColors = activeItems.map(d => isSchoolLevel ? (SCHOOL_COLORS[d.school_code] || '#3b82f6') : (DEPT_COLORS[d.dept_code] || '#3b82f6'));
 
     facultyPieChartInstance = new Chart(ctx, {
@@ -250,7 +280,7 @@ function renderFacultyPieChart(items, isSchoolLevel) {
         data: {
             labels: labels,
             datasets: [{
-                data: activeItems.map(d => d.faculty_count),
+                data: activeItems.map(d => getFac(d)),
                 backgroundColor: bgColors,
                 borderWidth: 2,
                 borderColor: '#ffffff'
@@ -263,7 +293,7 @@ function renderFacultyPieChart(items, isSchoolLevel) {
                 legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } },
                 tooltip: {
                     callbacks: {
-                        label: (ctx) => ` ${ctx.label}: ${ctx.raw} faculty lines`
+                        label: (ctx) => ` ${ctx.label}: ${ctx.raw} ${isAllScope ? 'billets' : 'teaching faculty'}`
                     }
                 }
             }

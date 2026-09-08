@@ -69,11 +69,15 @@ class MetricsEngine:
     def __init__(self, sections: List[SectionRecord], cadets: Dict[str, CadetRecord],
                  dept_mappings: Optional[Dict[str, List[str]]] = None,
                  roster_manager: Optional[Any] = None,
-                 name_resolver: Optional[Any] = None):
+                 name_resolver: Optional[Any] = None,
+                 exclude_capstones: bool = False,
+                 exclude_499s: bool = False):
         self.sections = sections
         self.cadets = cadets
         self.dept_mappings = dept_mappings or DEFAULT_DEPARTMENT_MAPPINGS
         self.roster_manager = roster_manager
+        self.exclude_capstones = exclude_capstones
+        self.exclude_499s = exclude_499s
 
         if name_resolver:
             self.name_resolver = name_resolver
@@ -84,8 +88,12 @@ class MetricsEngine:
 
     def compute_all_metrics(self) -> Dict[str, Any]:
         """Computes comprehensive school, department, curriculum, and faculty metrics."""
-        # 1. Filter out non-academic subjects
+        # 1. Filter out non-academic subjects and optional exclusions
         active_sections = [s for s in self.sections if s.subject not in DEFAULT_EXCLUDED_SUBJECTS]
+        if self.exclude_capstones:
+            active_sections = [s for s in active_sections if not s.is_capstone]
+        if self.exclude_499s:
+            active_sections = [s for s in active_sections if not s.is_499]
 
         # 2. Instructors Data & Split Attribution
         instructors_data = defaultdict(lambda: {
@@ -190,6 +198,20 @@ class MetricsEngine:
                 inst_primary_dept[inst] = pdept
                 idata['primary_dept'] = pdept
 
+        # Retain verified faculty on official rosters who teach 0 sections
+        if self.roster_manager:
+            for rentry in self.roster_manager.all_entries():
+                r_name = rentry.faculty_name
+                c_name = self.name_resolver.resolve(r_name) if self.name_resolver else r_name
+                if c_name and c_name not in instructors_data:
+                    pdept = rentry.department_code
+                    if pdept in self.dept_mappings and pdept != 'ESIS':
+                        instructors_data[c_name]['name'] = c_name
+                        instructors_data[c_name]['primary_dept'] = pdept
+                        instructors_data[c_name]['billet_status'] = rentry.billet_status
+                        instructors_data[c_name]['expected_tier'] = rentry.expected_tier
+                        instructors_data[c_name]['expected_sections'] = rentry.expected_sections
+                        inst_primary_dept[c_name] = pdept
 
         # 4. Department Summaries
         dept_summaries = []
@@ -200,15 +222,20 @@ class MetricsEngine:
             meta = DEPARTMENT_METADATA.get(dept_code, {'name': dept_code, 'school': 'OTHER', 'division': 'Academic'})
             dept_secs = [s for s in active_sections if s.subject in subjs]
             dept_faculty = [inst for inst, pdept in inst_primary_dept.items() if pdept == dept_code]
+            dept_teaching_faculty = [inst for inst in dept_faculty if instructors_data[inst]['sections_allocated'] > 0]
 
             sec_per_inst = [instructors_data[inst]['sections_allocated'] for inst in dept_faculty]
+            sec_per_teaching_inst = [instructors_data[inst]['sections_allocated'] for inst in dept_teaching_faculty]
             stu_per_inst = [instructors_data[inst]['students_allocated'] for inst in dept_faculty]
+            stu_per_teaching_inst = [instructors_data[inst]['students_allocated'] for inst in dept_teaching_faculty]
 
-            all_inst_allocated_sections.extend(sec_per_inst)
-            all_inst_allocated_students.extend(stu_per_inst)
+            all_inst_allocated_sections.extend(sec_per_teaching_inst if sec_per_teaching_inst else sec_per_inst)
+            all_inst_allocated_students.extend(stu_per_teaching_inst if stu_per_teaching_inst else stu_per_inst)
 
             sec_stats = calc_stats(sec_per_inst)
+            sec_teaching_stats = calc_stats(sec_per_teaching_inst) if dept_teaching_faculty else sec_stats
             stu_stats = calc_stats(stu_per_inst)
+            stu_teaching_stats = calc_stats(stu_per_teaching_inst) if dept_teaching_faculty else stu_stats
 
             sec_sizes = [s.cadet_count for s in dept_secs]
             sec_size_stats = calc_stats(sec_sizes)
@@ -337,7 +364,9 @@ class MetricsEngine:
                 'school_code': meta.get('school', 'OTHER'),
                 'division': meta['division'],
                 'subjects_included': subjs,
-                'faculty_count': len(dept_faculty),
+                'faculty_count': len(dept_teaching_faculty) if dept_teaching_faculty else len(dept_faculty),
+                'teaching_faculty_count': len(dept_teaching_faculty),
+                'all_billets_count': len(dept_faculty),
                 'total_sections': len(dept_secs),
                 'total_courses': len(unique_courses),
                 'total_cadet_seats': sum(sec_sizes),
@@ -345,11 +374,15 @@ class MetricsEngine:
                 'sub10_sections_count': len(sub10_secs),
                 'sub10_percentage': round((len(sub10_secs) / len(dept_secs) * 100), 1) if dept_secs else 0.0,
                 'capstone_sections_count': len(capstone_secs),
-                'sections_per_inst_mean': sec_stats['mean'],
-                'sections_per_inst_median': sec_stats['median'],
-                'students_per_inst_mean': stu_stats['mean'],
-                'students_per_inst_median': stu_stats['median'],
-                'students_per_inst_max': stu_stats['max'],
+                'sections_per_inst_mean': sec_teaching_stats['mean'],
+                'sections_per_inst_median': sec_teaching_stats['median'],
+                'sections_per_all_inst_mean': sec_stats['mean'],
+                'sections_per_all_inst_median': sec_stats['median'],
+                'students_per_inst_mean': stu_teaching_stats['mean'],
+                'students_per_inst_median': stu_teaching_stats['median'],
+                'students_per_inst_max': stu_teaching_stats['max'],
+                'students_per_all_inst_mean': stu_stats['mean'],
+                'students_per_all_inst_median': stu_stats['median'],
                 'section_size_mean': sec_size_stats['mean'],
                 'section_size_median': sec_size_stats['median'],
                 'section_size_distribution': size_buckets,
@@ -386,12 +419,18 @@ class MetricsEngine:
             s_depts = [d for d in dept_summaries if d.get('school_code') == s_code]
             s_dept_codes = set(s_meta['departments'])
             s_faculty = [inst for inst, pdept in inst_primary_dept.items() if pdept in s_dept_codes]
+            s_teaching_faculty = [inst for inst in s_faculty if instructors_data[inst]['sections_allocated'] > 0]
             s_secs = [s for s in active_sections if s.department in s_dept_codes]
 
-            s_sec_per_inst = [instructors_data[inst]['sections_allocated'] for inst in s_faculty]
-            s_stu_per_inst = [instructors_data[inst]['students_allocated'] for inst in s_faculty]
-            s_sec_stats = calc_stats(s_sec_per_inst)
-            s_stu_stats = calc_stats(s_stu_per_inst)
+            s_sec_teaching = [instructors_data[inst]['sections_allocated'] for inst in s_teaching_faculty] if s_teaching_faculty else [instructors_data[inst]['sections_allocated'] for inst in s_faculty]
+            s_sec_all = [instructors_data[inst]['sections_allocated'] for inst in s_faculty]
+            s_stu_teaching = [instructors_data[inst]['students_allocated'] for inst in s_teaching_faculty] if s_teaching_faculty else [instructors_data[inst]['students_allocated'] for inst in s_faculty]
+            s_stu_all = [instructors_data[inst]['students_allocated'] for inst in s_faculty]
+
+            s_sec_teaching_stats = calc_stats(s_sec_teaching)
+            s_sec_all_stats = calc_stats(s_sec_all)
+            s_stu_teaching_stats = calc_stats(s_stu_teaching)
+            s_stu_all_stats = calc_stats(s_stu_all)
 
             s_sizes = [s.cadet_count for s in s_secs]
             s_sub10 = [s for s in s_secs if s.is_sub10]
@@ -440,7 +479,9 @@ class MetricsEngine:
                 'icon': s_meta['icon'],
                 'departments': [d['dept_code'] for d in s_depts],
                 'departments_count': len(s_depts),
-                'faculty_count': len(s_faculty),
+                'faculty_count': len(s_teaching_faculty) if s_teaching_faculty else len(s_faculty),
+                'teaching_faculty_count': len(s_teaching_faculty),
+                'all_billets_count': len(s_faculty),
                 'total_sections': len(s_secs),
                 'total_courses': s_courses,
                 'total_cadet_seats': sum(s_sizes),
@@ -449,10 +490,14 @@ class MetricsEngine:
                 'sub10_percentage': round((len(s_sub10) / len(s_secs) * 100), 1) if s_secs else 0.0,
                 'capstone_sections_count': len(s_capstones),
                 'overall_avg_section_size': round(sum(s_sizes) / len(s_secs), 1) if s_secs else 0.0,
-                'sections_per_inst_mean': s_sec_stats['mean'],
-                'sections_per_inst_median': s_sec_stats['median'],
-                'students_per_inst_mean': s_stu_stats['mean'],
-                'students_per_inst_median': s_stu_stats['median'],
+                'sections_per_inst_mean': s_sec_teaching_stats['mean'],
+                'sections_per_inst_median': s_sec_teaching_stats['median'],
+                'sections_per_all_inst_mean': s_sec_all_stats['mean'],
+                'sections_per_all_inst_median': s_sec_all_stats['median'],
+                'students_per_inst_mean': s_stu_teaching_stats['mean'],
+                'students_per_inst_median': s_stu_teaching_stats['median'],
+                'students_per_all_inst_mean': s_stu_all_stats['mean'],
+                'students_per_all_inst_median': s_stu_all_stats['median'],
                 'declared_majors_total': sum(s_majors.values()),
                 'declared_majors': dict(s_majors),
                 'class_pipeline': {m: dict(cy) for m, cy in s_pipeline.items()},
@@ -477,18 +522,27 @@ class MetricsEngine:
         overall_sub10 = [s for s in active_sections if s.is_sub10]
         overall_sch = sum(s.student_credit_hours for s in active_sections)
 
+        all_teaching_inst = [i for i, d in instructors_data.items() if d['sections_allocated'] > 0]
+        all_inst_all_sections = [d['sections_allocated'] for d in instructors_data.values()]
+        all_inst_all_students = [d['students_allocated'] for d in instructors_data.values()]
+
         institution_kpis = {
             'total_sections': len(active_sections),
             'total_cadet_seats': sum(overall_sizes),
             'total_sch': round(overall_sch, 1),
-            'unique_faculty_count': len(instructors_data),
+            'unique_faculty_count': len(all_teaching_inst),
+            'teaching_faculty_count': len(all_teaching_inst),
+            'all_billets_count': len(instructors_data),
             'unique_departments_count': len([d for d in dept_summaries if d['total_sections'] > 0]),
             'overall_avg_sec_per_inst': calc_stats(all_inst_allocated_sections)['mean'],
+            'overall_avg_sec_per_all_inst': calc_stats(all_inst_all_sections)['mean'],
             'overall_avg_stu_per_inst': calc_stats(all_inst_allocated_students)['mean'],
+            'overall_avg_stu_per_all_inst': calc_stats(all_inst_all_students)['mean'],
             'overall_avg_section_size': calc_stats(overall_sizes)['mean'],
             'overall_sub10_count': len(overall_sub10),
             'overall_sub10_pct': round((len(overall_sub10) / len(active_sections) * 100), 1) if active_sections else 0.0
         }
+
 
         # Compute institutional advisees count per instructor
         advisees_per_inst = Counter()
@@ -574,6 +628,7 @@ class MetricsEngine:
                 'weight_type': s.weight_type,
                 'is_sub10': s.is_sub10,
                 'is_capstone': s.is_capstone,
+                'is_499': s.is_499,
                 'sch': round(s.student_credit_hours, 1)
             })
 
@@ -586,6 +641,69 @@ class MetricsEngine:
             'departments': dept_summaries,
             'faculty_directory': faculty_directory,
             'sections_audit': sections_audit
+        }
+
+    def compute_all_modes(self) -> Dict[str, Any]:
+        """
+        Computes all 4 combinations of Capstone and 499 exclusions:
+        - core: exclude_capstones=True, exclude_499s=True (Default, clean view)
+        - no_capstones: exclude_capstones=True, exclude_499s=False
+        - no_499s: exclude_capstones=False, exclude_499s=True
+        - all: exclude_capstones=False, exclude_499s=False
+
+        Returns a consolidated structure with 'default_mode': 'core',
+        pre-calculated mode snapshots, and a shared master sections_audit.
+        """
+        orig_cap = self.exclude_capstones
+        orig_499 = self.exclude_499s
+
+        # 1. Master run with everything included to obtain the full master sections_audit
+        self.exclude_capstones = False
+        self.exclude_499s = False
+        all_res = self.compute_all_metrics()
+        master_sections_audit = all_res['sections_audit']
+
+        # 2. Compute the 4 modes
+        modes_config = [
+            ('core', True, True),
+            ('no_capstones', True, False),
+            ('no_499s', False, True),
+            ('all', False, False)
+        ]
+
+        modes_data = {}
+        for mode_key, ex_cap, ex_499 in modes_config:
+            if mode_key == 'all':
+                m_res = all_res
+            else:
+                self.exclude_capstones = ex_cap
+                self.exclude_499s = ex_499
+                m_res = self.compute_all_metrics()
+
+            modes_data[mode_key] = {
+                'institution_kpis': m_res['institution_kpis'],
+                'school_kpis': m_res['school_kpis'],
+                'schools': m_res['schools'],
+                'departments': m_res['departments'],
+                'faculty_directory': m_res['faculty_directory']
+            }
+
+        # Restore original flags
+        self.exclude_capstones = orig_cap
+        self.exclude_499s = orig_499
+
+        core_payload = modes_data['core']
+
+        return {
+            'default_mode': 'core',
+            'modes': modes_data,
+            # Top-level backward compatibility for existing code/scripts
+            'institution_kpis': core_payload['institution_kpis'],
+            'school_kpis': core_payload['school_kpis'],
+            'schools': core_payload['schools'],
+            'departments': core_payload['departments'],
+            'faculty_directory': core_payload['faculty_directory'],
+            'sections_audit': master_sections_audit
         }
 
     def _get_department_major_names(self, dept_code: str) -> List[str]:

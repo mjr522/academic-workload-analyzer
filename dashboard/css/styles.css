@@ -307,11 +307,90 @@ tr:hover td { background: #f8fafc; }
     box-shadow: 0 10px 25px rgba(0,0,0,0.2);
     position: relative;
 }
-.modal-close {
-    position: absolute;
-    top: 18px; right: 20px;
-    font-size: 22px;
+.modal-close:hover { color: var(--text-main); }
+
+/* Global Resourcing & Filter Control Bar */
+.filter-toolbar {
+    background: #ffffff;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 16px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+}
+.filter-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.filter-label {
+    font-size: 11.5px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-right: 4px;
+}
+.filter-toggle-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
     cursor: pointer;
+    transition: all 0.15s ease;
+    border: 1px solid var(--border);
+    background: #f8fafc;
     color: var(--text-muted);
 }
-.modal-close:hover { color: var(--text-main); }
+.filter-toggle-btn:hover {
+    background: #f1f5f9;
+    color: var(--text-main);
+}
+.filter-toggle-btn.excluded {
+    background: #eff6ff;
+    color: var(--primary);
+    border-color: #bfdbfe;
+    font-weight: 700;
+}
+.filter-toggle-btn.included {
+    background: #fffbeb;
+    color: #b45309;
+    border-color: #fde68a;
+    font-weight: 600;
+}
+.scope-segmented {
+    display: inline-flex;
+    background: #f1f5f9;
+    border-radius: 6px;
+    padding: 3px;
+    border: 1px solid var(--border);
+}
+.scope-segment-btn {
+    padding: 5px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    border: none;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+.scope-segment-btn:hover {
+    color: var(--text-main);
+}
+.scope-segment-btn.active {
+    background: #ffffff;
+    color: var(--primary);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+    font-weight: 700;
+}

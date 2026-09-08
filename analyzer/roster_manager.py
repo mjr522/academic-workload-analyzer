@@ -112,9 +112,13 @@ class RosterEntry:
 
 def parse_tier_to_sections(tier_str: str) -> float:
     t = str(tier_str or '').lower()
-    if '1' in t or 'head' in t or 'director' in t and 'course' not in t or 'courtesy' in t:
+    if 'moa' in t or 'courtesy' in t:
+        return 0.0
+    if 'adjunct' in t or 'chair' in t:
+        return 0.5
+    if '1' in t or 'head' in t or 'division' in t or ('director' in t and 'course' not in t and 'lab' not in t) or 'exempt' in t:
         return 1.0
-    if '2' in t or 'course' in t:
+    if '2' in t or 'course' in t or 'lab' in t:
         return 2.0
     if '3' in t or 'line' in t:
         return 3.0
@@ -323,4 +327,7 @@ class RosterManager:
 
     def all_names(self) -> List[str]:
         return list(self.roster.keys())
+
+    def all_entries(self) -> List[RosterEntry]:
+        return list(self.roster.values())
 

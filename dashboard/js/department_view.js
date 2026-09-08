@@ -8,7 +8,7 @@ function initDepartmentDropdown(departments) {
     select.innerHTML = '';
 
     const schoolGroups = [
-        { code: 'SINE', label: '⚙️ SINE — School of Integrated Engineering Sciences' },
+        { code: 'SINE', label: '⚙️ SINE — School of Integrated Engineering' },
         { code: 'SIBS', label: '🔬 SIBS — School of Integrated Basic Sciences' },
         { code: 'HASS', label: '📚 HASS — School of Integrated Humanities, Arts, & Social Sciences' },
         { code: 'OTHER', label: 'Other Academic Units' }
@@ -47,7 +47,7 @@ function setTextSafe(id, val) {
 }
 
 function renderDepartmentDetails(deptCode) {
-    const data = window.currentWorkloadData;
+    const data = (typeof getActiveWorkloadData === 'function') ? getActiveWorkloadData() : window.currentWorkloadData;
     if (!data) return;
 
     const dept = data.departments.find(d => d.dept_code === deptCode);
@@ -326,6 +326,14 @@ function renderDepartmentCoursesTable(deptCode) {
         (subjs && subjs.includes(s.subject))
     );
 
+    // Apply global capstone and 499 exclusion filters
+    if (typeof excludeCapstones !== 'undefined' && excludeCapstones) {
+        sections = sections.filter(s => !s.is_capstone);
+    }
+    if (typeof exclude499s !== 'undefined' && exclude499s) {
+        sections = sections.filter(s => !s.is_499);
+    }
+
     // Search filter
     const searchInput = document.getElementById('deptCourseSearch');
     const query = searchInput ? searchInput.value.trim().toLowerCase() : '';
@@ -343,36 +351,47 @@ function renderDepartmentCoursesTable(deptCode) {
     if (sections.length === 0) {
         const msg = query 
             ? 'No course sections match your search query.' 
-            : 'No active course sections recorded for this department.';
+            : 'No active course sections recorded for this department (under active exclusion filters).';
         tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:#64748b; padding:18px;">${msg}</td></tr>`;
         return;
     }
 
     // Sort sections
-    if (currentDeptCoursesSort.col) {
-        const col = currentDeptCoursesSort.col;
-        const dir = currentDeptCoursesSort.dir;
-        sections.sort((a, b) => {
-            let valA, valB;
-            if (col === 'course') {
-                valA = `${a.subject || ''} ${a.course_nbr || ''}`.trim();
-                valB = `${b.subject || ''} ${b.course_nbr || ''}`.trim();
-            } else {
-                valA = a[col];
-                valB = b[col];
-            }
-
-            if (typeof valA === 'number' || typeof valB === 'number' || ['cadet_count', 'credit_units'].includes(col)) {
-                valA = Number(valA) || 0;
-                valB = Number(valB) || 0;
-                return dir === 'desc' ? (valB - valA) : (valA - valB);
-            }
-
-            valA = String(valA || '').toLowerCase();
-            valB = String(valB || '').toLowerCase();
-            return dir === 'desc' ? valB.localeCompare(valA) : valA.localeCompare(valB);
-        });
-    }
+    sections.sort((a, b) => {
+        let valA, valB;
+        switch (currentDeptCoursesSort.col) {
+            case 'course':
+                valA = `${a.subject} ${a.course_nbr}`;
+                valB = `${b.subject} ${b.course_nbr}`;
+                break;
+            case 'title':
+                valA = (a.title || '').toLowerCase();
+                valB = (b.title || '').toLowerCase();
+                break;
+            case 'section':
+                valA = (a.section || '').toLowerCase();
+                valB = (b.section || '').toLowerCase();
+                break;
+            case 'term':
+                valA = String(a.term || '');
+                valB = String(b.term || '');
+                break;
+            case 'cadet_count':
+                valA = a.cadet_count !== undefined ? a.cadet_count : 0;
+                valB = b.cadet_count !== undefined ? b.cadet_count : 0;
+                break;
+            case 'credit_units':
+                valA = a.credit_units !== undefined ? a.credit_units : 0;
+                valB = b.credit_units !== undefined ? b.credit_units : 0;
+                break;
+            default:
+                valA = `${a.subject} ${a.course_nbr}`;
+                valB = `${b.subject} ${b.course_nbr}`;
+        }
+        if (valA < valB) return currentDeptCoursesSort.dir === 'asc' ? -1 : 1;
+        if (valA > valB) return currentDeptCoursesSort.dir === 'asc' ? 1 : -1;
+        return 0;
+    });
 
     const knownFacultySet = new Set((data.faculty_directory || []).map(x => x.instructor));
 
@@ -404,6 +423,9 @@ function renderDepartmentCoursesTable(deptCode) {
         }
         if (s.is_capstone) {
             badges.push('<span class="badge badge-capstone" title="Senior Capstone Design / Culminating Experience">Capstone</span>');
+        }
+        if (s.is_499) {
+            badges.push('<span class="badge" style="background:#e0f2fe; color:#0369a1; font-weight:700;" title="Independent Study (499)">499 Ind Study</span>');
         }
         const flagsHtml = badges.length > 0 ? badges.join(' ') : '<span style="color:#cbd5e1;">—</span>';
 

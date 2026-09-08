@@ -9,7 +9,7 @@ Defines:
 - Course duration weighting rules
 """
 
-from typing import Any, Dict, List, Set
+from typing import Any, Dict, List, Set, Tuple
 
 # =========================================================================
 # 1. School Definitions & Leadership
@@ -17,9 +17,9 @@ from typing import Any, Dict, List, Set
 SCHOOL_METADATA: Dict[str, Dict[str, Any]] = {
     'SINE': {
         'code': 'SINE',
-        'name': 'School of Integrated Engineering Sciences',
-        'short_name': 'Engineering Sciences (SINE)',
-        'dean': 'Dean of Engineering Sciences',
+        'name': 'School of Integrated Engineering',
+        'short_name': 'Integrated Engineering (SINE)',
+        'dean': 'Dean of Engineering',
         'icon': '⚙️',
         'departments': ['ESME', 'ESCS', 'ESAN', 'ESCE', 'ESECE', 'ESAS', 'ESIS']
     },
@@ -45,7 +45,7 @@ SCHOOL_METADATA: Dict[str, Dict[str, Any]] = {
 # 2. Department Mappings across All Three Schools
 # =========================================================================
 DEFAULT_DEPARTMENT_MAPPINGS: Dict[str, List[str]] = {
-    # --- School of Integrated Engineering Sciences (SINE) ---
+    # --- School of Integrated Engineering (SINE) ---
     'ESME': ['MECHENGR', 'SYSENGR'],                     # Mechanical Engineering
     'ESCS': ['COMPSCI', 'CYBERSCI'],                      # Computer Science
     'ESAN': ['AEROENGR'],                                 # Aeronautics
@@ -75,13 +75,13 @@ DEFAULT_DEPARTMENT_MAPPINGS: Dict[str, List[str]] = {
 
 DEPARTMENT_METADATA: Dict[str, Dict[str, str]] = {
     # SINE
-    'ESME': {'name': 'Mechanical Engineering', 'school': 'SINE', 'division': 'School of Integrated Engineering Sciences', 'chair_title': 'Department Head'},
-    'ESCS': {'name': 'Computer Science', 'school': 'SINE', 'division': 'School of Integrated Engineering Sciences', 'chair_title': 'Department Head'},
-    'ESAN': {'name': 'Aeronautics', 'school': 'SINE', 'division': 'School of Integrated Engineering Sciences', 'chair_title': 'Department Head'},
-    'ESCE': {'name': 'Civil & Environmental Engineering', 'school': 'SINE', 'division': 'School of Integrated Engineering Sciences', 'chair_title': 'Department Head'},
-    'ESECE': {'name': 'Electrical & Computer Engineering', 'school': 'SINE', 'division': 'School of Integrated Engineering Sciences', 'chair_title': 'Department Head'},
-    'ESAS': {'name': 'Astronautics', 'school': 'SINE', 'division': 'School of Integrated Engineering Sciences', 'chair_title': 'Department Head'},
-    'ESIS': {'name': 'SINE Core Engineering', 'school': 'SINE', 'division': 'School of Integrated Engineering Sciences', 'chair_title': 'Dean / SINE Director'},
+    'ESME': {'name': 'Mechanical Engineering', 'school': 'SINE', 'division': 'School of Integrated Engineering', 'chair_title': 'Department Head'},
+    'ESCS': {'name': 'Computer Science', 'school': 'SINE', 'division': 'School of Integrated Engineering', 'chair_title': 'Department Head'},
+    'ESAN': {'name': 'Aeronautics', 'school': 'SINE', 'division': 'School of Integrated Engineering', 'chair_title': 'Department Head'},
+    'ESCE': {'name': 'Civil & Environmental Engineering', 'school': 'SINE', 'division': 'School of Integrated Engineering', 'chair_title': 'Department Head'},
+    'ESECE': {'name': 'Electrical & Computer Engineering', 'school': 'SINE', 'division': 'School of Integrated Engineering', 'chair_title': 'Department Head'},
+    'ESAS': {'name': 'Astronautics', 'school': 'SINE', 'division': 'School of Integrated Engineering', 'chair_title': 'Department Head'},
+    'ESIS': {'name': 'SINE Core Engineering', 'school': 'SINE', 'division': 'School of Integrated Engineering', 'chair_title': 'Dean / SINE Director'},
 
     # SIBS
     'BSBI': {'name': 'Biology', 'school': 'SIBS', 'division': 'School of Integrated Basic Sciences', 'chair_title': 'Department Head'},
@@ -189,16 +189,46 @@ FULL_SEMESTER_EXPERIMENTAL_COURSES: Set[str] = {
     'AEROENGR 206X', 'CIVENGR 486X'
 }
 
+# Verified Senior Capstone Courses (Catalog registry)
+CAPSTONE_COURSES: Set[Tuple[str, str]] = {
+    ('AEROENGR', '480'),  # Intro to Aircraft Eng Design
+    ('AEROENGR', '481'),  # Intro to Aircraft Design
+    ('BEHSCI', '498'),    # Senior Capstone
+    ('CIVENGR', '451'),   # Civil Engineering Capstone 1
+    ('COMPSCI', '453'),   # Software Engr Capstone Proj I
+    ('CYBERSCI', '438'),  # Cyber Science Capstone I
+    ('DATASCI', '421'),   # Data Science Capstone I
+    ('ECE', '463'),       # Capstone Design Project I
+    ('ENGLISH', '489'),   # Capstone Research
+    ('GEO', '497'),       # Capstone Research in Geospatial
+    ('LDRSHP', '400'),    # Leadership Capstone
+    ('LDRSHP', '400X'),   # Leadership Capstone
+    ('MATH', '420'),      # Mathematics Capstone I
+    ('MECHENGR', '491'),  # Capstone Design Project I
+    ('MGT', '472'),       # Strategic Mgt Capstone
+    ('OPSRSCH', '421'),   # Capstone in Ops Research I
+    ('PHYSICS', '490'),   # Capstone Physics Research
+    ('POLSCI', '491'),    # Capstone Seminar in Pol Science
+    ('SYSENGR', '491'),   # Sys Engr Capstone Design I
+}
+
+# Cross-listed / Co-convened course clusters: sets of (Subject, Course_Number) tuples
+CROSS_LISTED_COURSES: List[Set[Tuple[str, str]]] = [
+    {('MECHENGR', '332'), ('AEROENGR', '436')},
+]
+
 # =========================================================================
 # 4. Faculty Tiered Expectation Baseline (Dean's Model)
 # =========================================================================
 TIER_EXPECTATIONS: Dict[str, float] = {
-    'dept_head': 1.0,         # Department Heads / Deans (Administrative dominant)
-    'lab_director': 1.0,      # High-hazard / Major Facility Lab Directors
-    'course_director': 2.0,   # Core Course Directors & Discipline Leads
     'line_faculty': 3.0,      # Core instructional faculty
-    'adjunct_courtesy': 1.0,  # Agency research fellows (AFRL, NASA MOAs)
-    'endowed_chair': 1.0,     # Endowed chairs (part-time or fractional allocation)
+    'course_director': 2.0,   # Core Course Directors & Discipline Leads
+    'lab_director': 2.0,      # High-hazard / Major Facility Lab Directors
+    'dept_head': 1.0,         # Department Heads / Deans (Administrative dominant)
+    'division_chief': 1.0,    # Division Chiefs
+    'research_exempt': 1.0,   # Research Exempt / Sabbatical
+    'adjunct_chair': 0.5,     # Adjunct faculty & Endowed Chairs (part-time or fractional)
+    'moa_courtesy': 0.0,      # MOA / Courtesy visitors, lab techs, GS lab staff (surplus capacity)
 }
 
 BILLET_STATUSES: List[str] = [

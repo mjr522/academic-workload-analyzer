@@ -134,13 +134,18 @@ class TestCanonicalNameResolver(unittest.TestCase):
         engine = MetricsEngine([s1], cadets={}, roster_manager=roster_mgr)
         results = engine.compute_all_metrics()
 
-        # Ghost and Retired must NOT appear in faculty directory
+        # Verified roster faculty with 0 teaching assignments are preserved with 0 sections
         fac_dir = results['faculty_directory']
-        self.assertEqual(len(fac_dir), 1)
-        self.assertEqual(fac_dir[0]['instructor'], "Doe, Jane B")
+        self.assertEqual(len(fac_dir), 3)
+        doe = [f for f in fac_dir if f['instructor'] == "Doe, Jane B"][0]
+        ghost = [f for f in fac_dir if f['instructor'] == "Ghost, Casper"][0]
+        self.assertEqual(doe['weighted_sections'], 1.0)
+        self.assertEqual(ghost['weighted_sections'], 0.0)
 
-        # Department faculty count must only reflect active teaching faculty
+        # Department faculty count reflects teaching faculty by default, with all_billets_count tracking total
         esme_dept = [d for d in results['departments'] if d['dept_code'] == 'ESME'][0]
+        self.assertEqual(esme_dept['teaching_faculty_count'], 1)
+        self.assertEqual(esme_dept['all_billets_count'], 3)
         self.assertEqual(esme_dept['faculty_count'], 1)
 
 if __name__ == '__main__':

@@ -18,6 +18,8 @@ from analyzer.config import (
     HALF_SEMESTER_COURSES,
     FULL_SEMESTER_EXPERIMENTAL_COURSES,
     SUBJECT_TO_DEPARTMENT,
+    CAPSTONE_COURSES,
+    CROSS_LISTED_COURSES,
 )
 
 SUFFIXES: Set[str] = {
@@ -157,9 +159,24 @@ class SectionRecord:
 
     @property
     def is_capstone(self) -> bool:
-        cnum = self.course_number.upper()
+        cnum = self.course_number.upper().strip()
+        subj = self.subject.upper().strip()
         title = self.course_title.upper()
-        return 'CAPSTONE' in title or cnum in {'451', '452', '463', '464', '491', '492'}
+        if (subj, cnum) in CAPSTONE_COURSES:
+            return True
+        if 'CAPSTONE' in title or 'SENIOR DESIGN' in title or 'AIRCRAFT DESIGN' in title:
+            return True
+        return False
+
+    @property
+    def is_499(self) -> bool:
+        cnum = self.course_number.upper().strip()
+        title = self.course_title.upper()
+        if cnum.startswith('499'):
+            return True
+        if 'INDEPENDENT STUDY' in title or ('SPECIAL TOPICS' in title and cnum.startswith('49')):
+            return True
+        return False
 
     @property
     def student_credit_hours(self) -> float:
@@ -283,3 +300,52 @@ class RegistrarParser:
                         )
 
         self.terms.sort()
+
+    def merge_cross_listed_sections(self) -> int:
+        """
+        Merges sections that belong to known cross-listed course clusters meeting at the
+        same (term, section_code), combining their cadet rosters into 1 unified section
+        and eliminating artificial double-counting.
+        """
+        if not CROSS_LISTED_COURSES:
+            return 0
+
+        merged_count = 0
+        from collections import defaultdict
+        term_sec_map = defaultdict(list)
+        for sec_key, sec in self.sections.items():
+            if sec.section_code and not sec.section_code.startswith('IS'):
+                term_sec_map[(sec.term, sec.section_code)].append((sec_key, sec))
+
+        keys_to_remove = set()
+        for (term, sec_code), sec_entries in term_sec_map.items():
+            if len(sec_entries) < 2:
+                continue
+
+            for cluster in CROSS_LISTED_COURSES:
+                cluster_matches = []
+                for sec_key, sec in sec_entries:
+                    pair_id = (sec.subject.upper().strip(), sec.course_number.upper().strip())
+                    if pair_id in cluster and sec_key not in keys_to_remove:
+                        cluster_matches.append((sec_key, sec))
+
+                if len(cluster_matches) >= 2:
+                    primary_key, primary_sec = cluster_matches[0]
+                    for other_key, other_sec in cluster_matches[1:]:
+                        # Combine cadet rosters
+                        primary_sec.cadet_ids.update(other_sec.cadet_ids)
+                        # Combine instructors
+                        for inst in other_sec.instructors:
+                            if inst not in primary_sec.instructors:
+                                primary_sec.instructors.append(inst)
+                        # Append cross-listed info in title
+                        if "(Cross-Listed)" not in primary_sec.course_title:
+                            primary_sec.course_title = f"{primary_sec.course_title} / {other_sec.course_title} (Cross-Listed)"
+                        keys_to_remove.add(other_key)
+                        merged_count += 1
+
+        for k in keys_to_remove:
+            if k in self.sections:
+                del self.sections[k]
+
+        return merged_count

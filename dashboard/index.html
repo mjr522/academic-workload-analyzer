@@ -79,6 +79,26 @@
             </div>
         </div>
 
+        <!-- Resourcing Baseline & Filtering Control Bar -->
+        <div class="filter-toolbar">
+            <div class="filter-group">
+                <span class="filter-label">Curriculum Baseline:</span>
+                <button id="toggleCapstonesBtn" class="filter-toggle-btn excluded" onclick="toggleCapstonesFilter()" title="Click to toggle Senior Design Capstones (e.g. AEROENGR 480/481, MECHENGR 491)">
+                    <span id="capstoneIcon">🚫</span> <span id="capstoneLabel">Capstones: Excluded</span>
+                </button>
+                <button id="toggle499sBtn" class="filter-toggle-btn excluded" onclick="toggle499sFilter()" title="Click to toggle Independent Study 499s from section counts and averages">
+                    <span id="study499Icon">🚫</span> <span id="study499Label">499s: Excluded</span>
+                </button>
+            </div>
+            <div class="filter-group">
+                <span class="filter-label">Faculty Resourcing Scope:</span>
+                <div class="scope-segmented">
+                    <button id="btnScopeTeaching" class="scope-segment-btn active" onclick="setFacultyScope('TEACHING')" title="Instructional faculty with active classroom teaching assignments">👨‍🏫 Teaching Faculty Only</button>
+                    <button id="btnScopeAll" class="scope-segment-btn" onclick="setFacultyScope('ALL')" title="All department billets and verified personnel (including non-teaching)">👥 All Department Billets</button>
+                </div>
+            </div>
+        </div>
+
         <!-- Tab Navigation Bar -->
         <nav class="nav-tabs-bar">
             <button class="nav-tab-btn active" id="btn-tab-executive" onclick="switchTab('tab-executive')">📊 Executive Overview</button>
@@ -98,7 +118,7 @@
                     <label for="schoolScopeSelect" style="font-weight: 700; font-size: 13.5px; color: var(--text-main); text-transform: uppercase;">Academic School Scope:</label>
                     <select id="schoolScopeSelect" onchange="changeSchoolScope(this.value)" style="padding: 8px 16px; font-size: 14px; font-weight: 600; border-radius: 6px; border: 1px solid var(--border); background: #f8fafc; color: var(--text-main); cursor: pointer;">
                         <option value="ALL" selected>🏛️ All Schools — USAFA Academic Division</option>
-                        <option value="SINE">⚙️ SINE — School of Integrated Engineering Sciences</option>
+                        <option value="SINE">⚙️ SINE — School of Integrated Engineering</option>
                         <option value="SIBS">🔬 SIBS — School of Integrated Basic Sciences</option>
                         <option value="HASS">📚 HASS — School of Integrated Humanities, Arts, & Social Sciences</option>
                     </select>
@@ -467,16 +487,19 @@
                 <div class="card-header">
                     <div>
                         <div class="card-title">Academic Faculty Workload Directory</div>
-                        <div class="card-desc">Complete roster of instructors across USAFA Academic Schools</div>
+                        <div class="card-desc">Complete roster of instructors across USAFA Academic Schools. Click any column header to sort.</div>
                     </div>
                     <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-                        <select id="facultySchoolFilter" onchange="renderFacultyDirectory()" style="padding:6px 10px; font-size:12px; border:1px solid var(--border); border-radius:6px; background:#fff; font-weight:600; cursor:pointer;">
+                        <select id="facultySchoolFilter" onchange="onFacultySchoolFilterChange()" style="padding:6px 10px; font-size:12px; border:1px solid var(--border); border-radius:6px; background:#fff; font-weight:600; cursor:pointer;">
                             <option value="ALL">All Schools</option>
                             <option value="SINE">SINE (Engineering)</option>
                             <option value="SIBS">SIBS (Basic Sciences)</option>
                             <option value="HASS">HASS (Humanities & Social Sci)</option>
                         </select>
-                        <input type="text" id="facultySearch" placeholder="Filter faculty, department, or course..." onkeyup="renderFacultyDirectory()" style="padding:6px 12px; font-size:12px; border:1px solid var(--border); border-radius:6px; width:260px;">
+                        <select id="facultyDeptFilter" onchange="renderFacultyDirectory()" style="padding:6px 10px; font-size:12px; border:1px solid var(--border); border-radius:6px; background:#fff; font-weight:600; cursor:pointer;">
+                            <option value="ALL">All Departments</option>
+                        </select>
+                        <input type="text" id="facultySearch" placeholder="Filter faculty, department, or course..." onkeyup="renderFacultyDirectory()" style="padding:6px 12px; font-size:12px; border:1px solid var(--border); border-radius:6px; width:240px;">
                     </div>
                 </div>
 
@@ -484,16 +507,16 @@
                     <table>
                         <thead>
                             <tr>
-                                <th>Instructor Name (Click for Details)</th>
-                                <th>School</th>
-                                <th>Home Dept</th>
-                                <th>Billet Status</th>
-                                <th>Expected Tier</th>
-                                <th class="num">Actual Secs</th>
-                                <th class="num">Delta</th>
-                                <th class="num">Cadet Contact</th>
-                                <th class="num">Total Seats</th>
-                                <th class="num">Avg Class Size</th>
+                                <th class="sortable" onclick="sortFacultyDirectory('instructor')">Instructor Name <span class="sort-icon" id="th-facsort-instructor">↕</span></th>
+                                <th class="sortable" onclick="sortFacultyDirectory('school_code')">School <span class="sort-icon" id="th-facsort-school_code">↕</span></th>
+                                <th class="sortable" onclick="sortFacultyDirectory('primary_dept')">Home Dept <span class="sort-icon" id="th-facsort-primary_dept">↕</span></th>
+                                <th class="sortable" onclick="sortFacultyDirectory('billet_status')">Billet Status <span class="sort-icon" id="th-facsort-billet_status">↕</span></th>
+                                <th class="sortable" onclick="sortFacultyDirectory('expected_tier')">Expected Tier <span class="sort-icon" id="th-facsort-expected_tier">↕</span></th>
+                                <th class="num sortable" onclick="sortFacultyDirectory('weighted_sections')">Actual Secs <span class="sort-icon" id="th-facsort-weighted_sections">↕</span></th>
+                                <th class="num sortable" onclick="sortFacultyDirectory('section_delta')">Delta <span class="sort-icon" id="th-facsort-section_delta">↕</span></th>
+                                <th class="num sortable" onclick="sortFacultyDirectory('cadet_load_allocated')">Cadet Contact <span class="sort-icon" id="th-facsort-cadet_load_allocated">↕</span></th>
+                                <th class="num sortable" onclick="sortFacultyDirectory('total_cadet_seats')">Total Seats <span class="sort-icon" id="th-facsort-total_cadet_seats">↕</span></th>
+                                <th class="num sortable" onclick="sortFacultyDirectory('avg_section_size')">Avg Class Size <span class="sort-icon" id="th-facsort-avg_section_size">↕</span></th>
                                 <th>Courses Taught</th>
                             </tr>
                         </thead>
@@ -511,18 +534,32 @@
                 <div class="card-header">
                     <div>
                         <div class="card-title">⚙️ "What-If" Staffing & Resourcing Scenario Sandbox</div>
-                        <div class="card-desc">Simulate reassigning faculty between departments, changing expected tier roles, and export staffing proposals</div>
+                        <div class="card-desc">Simulate reassigning faculty between departments, calibrating tier roles, and live-updating capacity</div>
                     </div>
-                    <div style="display: flex; gap: 8px;">
-                        <button class="btn btn-amber" onclick="applyWhatIfRecalculation()">⚡ Recalculate Scenario Live</button>
-                        <button class="btn" onclick="exportScenarioJSON()">💾 Export Scenario JSON</button>
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+                        <button class="btn btn-amber" onclick="applyWhatIfRecalculation()">⚡ Recalculate Live</button>
+                        <button class="btn btn-primary" onclick="exportCalibratedJSON()">💾 Export Calibrated JSON</button>
                         <button class="btn" onclick="exportScenarioCSV()">📑 Export Summary CSV</button>
                     </div>
                 </div>
 
-                <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 14px;">
-                    Department heads can simulate staffing changes below (e.g. promoting a faculty member to Course Director or reallocating an instructor to another program). Click <strong>Recalculate Scenario Live</strong> to watch all department averages and the 2×2 Matrix update in real time.
-                </p>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 10px; background: #f8fafc; padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border);">
+                    <p style="font-size: 13px; color: var(--text-muted); margin: 0;">
+                        Calibrate faculty role expectations below. Click <strong>Recalculate Live</strong> to see department distributions update in real time, or <strong>Export Calibrated JSON</strong> to save.
+                    </p>
+                    <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                        <select id="whatifSchoolFilter" onchange="onWhatIfSchoolFilterChange()" style="padding:6px 10px; font-size:12px; border:1px solid var(--border); border-radius:6px; background:#fff; font-weight:600; cursor:pointer;">
+                            <option value="ALL">All Schools</option>
+                            <option value="SINE">SINE (Engineering)</option>
+                            <option value="SIBS">SIBS (Basic Sciences)</option>
+                            <option value="HASS">HASS (Humanities & Social Sci)</option>
+                        </select>
+                        <select id="whatifDeptFilter" onchange="renderWhatIfFacultyTable()" style="padding:6px 10px; font-size:12px; border:1px solid var(--border); border-radius:6px; background:#fff; font-weight:600; cursor:pointer;">
+                            <option value="ALL">All Departments</option>
+                        </select>
+                        <input type="text" id="whatifSearch" placeholder="Search faculty name or dept..." oninput="renderWhatIfFacultyTable()" style="padding:6px 12px; font-size:12px; border:1px solid var(--border); border-radius:6px; width:200px;">
+                    </div>
+                </div>
 
                 <div class="scroll-wrapper">
                     <table>
@@ -541,6 +578,7 @@
                 </div>
             </div>
         </div>
+
 
     </div>
 
