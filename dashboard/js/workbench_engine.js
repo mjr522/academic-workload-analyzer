@@ -261,7 +261,7 @@ function recomputeWorkbenchMetrics() {
     Object.entries(st.departmentRosters || {}).forEach(([deptCode, roster]) => {
         deptFacultyMap[deptCode] = [];
 
-        roster.forEach(fac => {
+        roster.forEach((fac, fIdx) => {
             const mySecs = instSecMap[fac.instructor] || [];
             const nSecs = mySecs.length;
 
