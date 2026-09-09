@@ -553,10 +553,12 @@ function resetPolicyToDefaults() {
             'PHYSICS 490', 'POLSCI 491', 'SYSENGR 491'
         ],
         halfCreditCourses: [
-            'COMMSTRT 101', 'COMMSTRT 101X'
+            'COMMSTRT 101', 'COMMSTRT 101X',
+            'LDRSHP 100', 'LDRSHP 100X', 'LDRSHP 400', 'LDRSHP 400X'
         ],
         quarterCreditCourses: [
-            'SPACE 251A', 'SPACE 251C', 'SPACE 252B', 'SPACE 252D', 'SPACE 472A', 'SPACE 472B'
+            'LDRSHP 300A', 'LDRSHP 300B', 'LDRSHP 300C', 'LDRSHP 300D',
+            'SPACE 251A', 'SPACE 251C', 'SPACE 252B', 'SPACE 252D', 'SPACE 350', 'SPACE 472A', 'SPACE 472B'
         ],
         excludeCapstones: true,
         exclude499s: true,
@@ -567,7 +569,8 @@ function resetPolicyToDefaults() {
             'Dept_Head': { name: 'Dept Head / Lab Dir', expected_sections: 1.0, teaching_pct: 25, admin_pct: 60, research_pct: 10, labops_pct: 5, is_custom: false },
             'Division_Chief': { name: 'Division Chief', expected_sections: 1.0, teaching_pct: 25, admin_pct: 60, research_pct: 10, labops_pct: 5, is_custom: false },
             'Adjunct_Chair': { name: 'Adjunct / Chair', expected_sections: 0.5, teaching_pct: 15, admin_pct: 70, research_pct: 10, labops_pct: 5, is_custom: false },
-            'MOA_Courtesy': { name: 'MOA / Courtesy', expected_sections: 0.0, teaching_pct: 0, admin_pct: 80, research_pct: 15, labops_pct: 5, is_custom: false }
+            'MOA_Courtesy': { name: 'MOA / Courtesy', expected_sections: 0.0, teaching_pct: 0, admin_pct: 80, research_pct: 15, labops_pct: 5, is_custom: false },
+            'Lab_Staff': { name: 'Lab Staff', expected_sections: 0.0, teaching_pct: 0, admin_pct: 0, research_pct: 0, labops_pct: 100, is_custom: false }
         }
     };
 

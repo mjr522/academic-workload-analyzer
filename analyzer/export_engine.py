@@ -35,7 +35,7 @@ class ExportEngine:
         # Package default institutional rules & tiers policy
         from analyzer.config import (
             CAPSTONE_COURSES, CROSS_LISTED_COURSES, TIER_EXPECTATIONS,
-            DEFAULT_EXCLUDED_SUBJECTS, HALF_SEMESTER_COURSES
+            DEFAULT_EXCLUDED_SUBJECTS, HALF_SEMESTER_COURSES, QUARTER_SEMESTER_COURSES
         )
         all_subjects = sorted(list(set(
             s['subject'] for s in self.metrics_data.get('sections_audit', [])
@@ -44,7 +44,7 @@ class ExportEngine:
 
         # Collect half-credit and quarter-credit courses from config and sections_audit
         half_credit = set(HALF_SEMESTER_COURSES)
-        quarter_credit = set()
+        quarter_credit = set(QUARTER_SEMESTER_COURSES)
         for s in self.metrics_data.get('sections_audit', []):
             subj = s.get('subject')
             cnum = s.get('course_nbr')
@@ -77,7 +77,8 @@ class ExportEngine:
                 'Dept_Head': {'name': 'Dept Head / Lab Dir', 'expected_sections': 1.0, 'teaching_pct': 25.0, 'admin_pct': 60.0, 'research_pct': 10.0, 'labops_pct': 5.0},
                 'Division_Chief': {'name': 'Division Chief', 'expected_sections': 1.0, 'teaching_pct': 25.0, 'admin_pct': 60.0, 'research_pct': 10.0, 'labops_pct': 5.0},
                 'Adjunct_Chair': {'name': 'Adjunct / Chair', 'expected_sections': 0.5, 'teaching_pct': 15.0, 'admin_pct': 70.0, 'research_pct': 10.0, 'labops_pct': 5.0},
-                'MOA_Courtesy': {'name': 'MOA / Courtesy', 'expected_sections': 0.0, 'teaching_pct': 0.0, 'admin_pct': 80.0, 'research_pct': 15.0, 'labops_pct': 5.0}
+                'MOA_Courtesy': {'name': 'MOA / Courtesy', 'expected_sections': 0.0, 'teaching_pct': 0.0, 'admin_pct': 80.0, 'research_pct': 15.0, 'labops_pct': 5.0},
+                'Lab_Staff': {'name': 'Lab Staff', 'expected_sections': 0.0, 'teaching_pct': 0.0, 'admin_pct': 0.0, 'research_pct': 0.0, 'labops_pct': 100.0}
             }
         }
         payload['default_policy'] = default_policy

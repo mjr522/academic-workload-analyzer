@@ -94,10 +94,12 @@ function renderWhatIfFacultyTable() {
         // Determine current normalized tier
         const tStr = (f.expected_tier || '').toLowerCase();
         let selectedTier = 'Line_Faculty';
-        if (tStr.includes('course') || tStr.includes('dir')) selectedTier = 'Course_Director';
-        else if (tStr.includes('head') || tStr.includes('dh') || tStr.includes('lab')) selectedTier = 'Dept_Head';
+        if (tStr.includes('lab') && tStr.includes('staff')) selectedTier = 'Lab_Staff';
+        else if (tStr.includes('course') || tStr.includes('dir')) selectedTier = 'Course_Director';
+        else if (tStr.includes('head') || tStr.includes('dh')) selectedTier = 'Dept_Head';
         else if (tStr.includes('adjunct') || tStr.includes('chair')) selectedTier = 'Adjunct_Chair';
         else if (tStr.includes('moa') || tStr.includes('cour')) selectedTier = 'MOA_Courtesy';
+        else if (tStr.includes('lab')) selectedTier = 'Lab_Staff';
 
         tr.innerHTML = `
             <td><strong>${displayName}</strong></td>
@@ -113,6 +115,7 @@ function renderWhatIfFacultyTable() {
                     <option value="Dept_Head" ${selectedTier === 'Dept_Head' ? 'selected' : ''}>Dept Head / Lab Dir (1.0 sec)</option>
                     <option value="Adjunct_Chair" ${selectedTier === 'Adjunct_Chair' ? 'selected' : ''}>Adjunct / Chair (0.5 secs)</option>
                     <option value="MOA_Courtesy" ${selectedTier === 'MOA_Courtesy' ? 'selected' : ''}>MOA / Courtesy (0.0 secs)</option>
+                    <option value="Lab_Staff" ${selectedTier === 'Lab_Staff' ? 'selected' : ''}>Lab Staff (0.0 secs)</option>
                 </select>
             </td>
             <td class="num"><strong>${f.weighted_sections}</strong></td>
@@ -141,7 +144,8 @@ function updateFacultyTier(instName, newTierKey) {
             'Course_Director': { name: 'Course_Director (2 secs)', secs: 2.0 },
             'Dept_Head': { name: 'Dept_Head / Lab_Dir (1 sec)', secs: 1.0 },
             'Adjunct_Chair': { name: 'Adjunct / Chair (0.5 secs)', secs: 0.5 },
-            'MOA_Courtesy': { name: 'MOA / Courtesy (0.0 secs)', secs: 0.0 }
+            'MOA_Courtesy': { name: 'MOA / Courtesy (0.0 secs)', secs: 0.0 },
+            'Lab_Staff': { name: 'Lab Staff (0.0 secs)', secs: 0.0 }
         };
         const tierInfo = tierMap[newTierKey] || tierMap['Line_Faculty'];
         f.expected_tier = tierInfo.name;

@@ -182,7 +182,13 @@ DEFAULT_ENGINEERING_SUBJECTS: Set[str] = {
 # 3. Course Duration & Section Weighting Rules
 # =========================================================================
 HALF_SEMESTER_COURSES: Set[str] = {
-    'COMMSTRT 101', 'COMMSTRT 101X', 'COMMSTR 101', 'COMMSTR 101X'
+    'COMMSTRT 101', 'COMMSTRT 101X', 'COMMSTR 101', 'COMMSTR 101X',
+    'LDRSHP 100', 'LDRSHP 100X', 'LDRSHP 400', 'LDRSHP 400X'
+}
+
+QUARTER_SEMESTER_COURSES: Set[str] = {
+    'LDRSHP 300A', 'LDRSHP 300B', 'LDRSHP 300C', 'LDRSHP 300D',
+    'SPACE 251A', 'SPACE 251C', 'SPACE 252B', 'SPACE 252D', 'SPACE 350', 'SPACE 472A', 'SPACE 472B'
 }
 
 FULL_SEMESTER_EXPERIMENTAL_COURSES: Set[str] = {
@@ -229,6 +235,7 @@ TIER_EXPECTATIONS: Dict[str, float] = {
     'research_exempt': 1.0,   # Research Exempt / Sabbatical
     'adjunct_chair': 0.5,     # Adjunct faculty & Endowed Chairs (part-time or fractional)
     'moa_courtesy': 0.0,      # MOA / Courtesy visitors, lab techs, GS lab staff (surplus capacity)
+    'lab_staff': 0.0,         # Dedicated laboratory operations staff (100% lab ops)
 }
 
 BILLET_STATUSES: List[str] = [
