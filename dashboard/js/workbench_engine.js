@@ -20,6 +20,12 @@ window.workbenchState = {
             'LDRSHP 400', 'MATH 420', 'MECHENGR 491', 'MGT 472', 'OPSRSCH 421',
             'PHYSICS 490', 'POLSCI 491', 'SYSENGR 491'
         ],
+        halfCreditCourses: [
+            'COMMSTRT 101', 'COMMSTRT 101X'
+        ],
+        quarterCreditCourses: [
+            'SPACE 251A', 'SPACE 251C', 'SPACE 252B', 'SPACE 252D', 'SPACE 472A', 'SPACE 472B'
+        ],
         excludeCapstones: true,
         exclude499s: true,
         sub10Threshold: 10,
@@ -65,6 +71,12 @@ function initWorkbenchState(data) {
             } else {
                 window.workbenchState.policy.capstoneCourses = dp.capstone_courses;
             }
+        }
+        if (dp.half_credit_courses && Array.isArray(dp.half_credit_courses)) {
+            window.workbenchState.policy.halfCreditCourses = dp.half_credit_courses;
+        }
+        if (dp.quarter_credit_courses && Array.isArray(dp.quarter_credit_courses)) {
+            window.workbenchState.policy.quarterCreditCourses = dp.quarter_credit_courses;
         }
         if (dp.sub10_threshold) window.workbenchState.policy.sub10Threshold = dp.sub10_threshold;
         if (dp.tiers) {
@@ -159,56 +171,101 @@ function recomputeWorkbenchMetrics() {
         }
     });
 
-    // 1. Filter active sections (without mutating rawSections)
+    const halfCreditSet = new Set();
+    (policy.halfCreditCourses || []).forEach(item => {
+        if (typeof item === 'string') halfCreditSet.add(item.trim().toUpperCase());
+        else if (item && item.subject && item.course_nbr) halfCreditSet.add(`${item.subject} ${item.course_nbr}`.trim().toUpperCase());
+    });
+
+    const quarterCreditSet = new Set();
+    (policy.quarterCreditCourses || []).forEach(item => {
+        if (typeof item === 'string') quarterCreditSet.add(item.trim().toUpperCase());
+        else if (item && item.subject && item.course_nbr) quarterCreditSet.add(`${item.subject} ${item.course_nbr}`.trim().toUpperCase());
+    });
+
+    // 1. Filter active sections and annotate all audited sections (without mutating rawSections)
     const allSecs = st.rawSections || [];
+    const auditedSecs = [];
     const activeSecs = [];
 
     allSecs.forEach(rawSec => {
         // Subject inclusion
-        if (rawSec.subject && !includedSubjs.has(rawSec.subject)) return;
+        const isSubjInc = !rawSec.subject || includedSubjs.has(rawSec.subject);
 
         // Capstone check: match by Subject + Course Number
         const courseKey = `${rawSec.subject || ''} ${rawSec.course_nbr || ''}`.trim().toUpperCase();
         const isCap = capCoursesSet.has(courseKey);
-        if (exCap && isCap) return;
 
         // 499 check
         const is499 = String(rawSec.course_nbr) === '499';
-        if (ex499 && is499) return;
+
+        // Credit Weight evaluation (1/2 credit, 1/4 credit, 499, or full credit)
+        let secWeight = 1.0;
+        let cadetWeight = 1.0;
+        let creditType = 'Full Credit';
+
+        if (is499) {
+            secWeight = 0.0;
+            cadetWeight = 1.0;
+            creditType = 'Independent Study';
+        } else if (halfCreditSet.has(courseKey)) {
+            secWeight = 0.50;
+            cadetWeight = 0.50;
+            creditType = 'Half Credit';
+        } else if (quarterCreditSet.has(courseKey)) {
+            secWeight = 0.25;
+            cadetWeight = 0.25;
+            creditType = 'Quarter Credit';
+        }
 
         // Sub-10 evaluation based on active threshold
         const cCount = rawSec.cadets !== undefined ? rawSec.cadets : (rawSec.cadet_count !== undefined ? rawSec.cadet_count : 0);
         const isSub10 = (cCount <= sub10Thresh);
 
-        // Push computed section clone
-        activeSecs.push({
+        const secObj = {
             ...rawSec,
+            is_subject_included: isSubjInc,
             is_capstone: isCap,
             is_499: is499,
-            is_sub10: isSub10
-        });
+            is_sub10: isSub10,
+            section_weight: secWeight,
+            cadet_weight: cadetWeight,
+            credit_multiplier: secWeight,
+            credit_type: creditType
+        };
+
+        auditedSecs.push(secObj);
+
+        // Active sections filter
+        if (!isSubjInc) return;
+        if (exCap && isCap) return;
+        if (ex499 && is499) return;
+
+        activeSecs.push(secObj);
     });
 
     // 2. Instructor attribution map
     const instSecMap = {};
     activeSecs.forEach(s => {
-        (s.instructors || []).forEach(inst => {
-            if (!instSecMap[inst]) instSecMap[inst] = [];
-            instSecMap[inst].push(s);
+        const insts = s.instructors || [];
+        insts.forEach(instName => {
+            if (!instSecMap[instName]) instSecMap[instName] = [];
+            instSecMap[instName].push(s);
         });
     });
 
-    // 3. Faculty Calculation across all departments
+    // 3. Consolidated Faculty List & Tier Calibrations
     const consolidatedFaculty = [];
     const deptFacultyMap = {};
 
-    Object.entries(st.departmentRosters).forEach(([deptCode, facultyList]) => {
+    Object.entries(st.departmentRosters || {}).forEach(([deptCode, roster]) => {
         deptFacultyMap[deptCode] = [];
 
-        facultyList.forEach((fac, fIdx) => {
+        roster.forEach(fac => {
             const mySecs = instSecMap[fac.instructor] || [];
             const nSecs = mySecs.length;
-            let weightedSecs = 0;
+
+            let weightedSecs = 0.0;
             let cadetAlloc = 0;
             let totalSeats = 0;
             const coursesSet = new Set();
@@ -216,16 +273,24 @@ function recomputeWorkbenchMetrics() {
 
             mySecs.forEach(s => {
                 const coCount = Math.max(1, (s.instructors || []).length);
-                const w = Math.round((1.0 / coCount) * 100) / 100;
+                const secWeight = s.section_weight !== undefined ? s.section_weight : 1.0;
+                const cadetWeight = s.cadet_weight !== undefined ? s.cadet_weight : 1.0;
+
+                const w = Math.round((secWeight / coCount) * 100) / 100;
                 const cCount = s.cadets !== undefined ? s.cadets : (s.cadet_count !== undefined ? s.cadet_count : 0);
-                const allocCadets = Math.round(cCount / coCount);
+                const allocCadets = Math.round(((cCount * cadetWeight) / coCount) * 10) / 10;
+                const weightedSeat = Math.round((cCount * cadetWeight) * 10) / 10;
 
                 weightedSecs += w;
                 cadetAlloc += allocCadets;
-                totalSeats += cCount;
+                totalSeats += weightedSeat;
 
                 const cName = `${s.subject || ''} ${s.course_nbr || ''}`.trim();
                 if (cName) coursesSet.add(cName);
+
+                let weightLabel = coCount > 1
+                    ? (s.credit_type && s.credit_type !== 'Full Credit' ? `${s.credit_type}, Co-Taught` : 'Co-Taught')
+                    : (s.credit_type || 'Solo');
 
                 assignments.push({
                     course: cName,
@@ -233,13 +298,16 @@ function recomputeWorkbenchMetrics() {
                     section: s.section || '',
                     term: s.term || '',
                     cadets: cCount,
+                    cadet_contact: allocCadets,
                     sec_weight: w,
-                    weight_type: coCount > 1 ? 'Co-Taught' : 'Solo',
+                    weight_type: weightLabel,
+                    credit_type: s.credit_type || 'Full Credit',
                     co_instructors: (s.instructors || []).filter(i => i !== fac.instructor)
                 });
             });
 
             weightedSecs = Math.round(weightedSecs * 100) / 100;
+            cadetAlloc = Math.round(cadetAlloc * 10) / 10;
             const avgSize = nSecs > 0 ? Math.round((totalSeats / nSecs) * 10) / 10 : 0;
 
             // Tier expectations & delta
@@ -302,16 +370,16 @@ function recomputeWorkbenchMetrics() {
             (subjs && subjs.includes(s.subject))
         );
 
-        const dSections = deptSecs.length;
-        const dSeats = deptSecs.reduce((acc, s) => acc + (s.cadets !== undefined ? s.cadets : (s.cadet_count !== undefined ? s.cadet_count : 0)), 0);
-        const dSCH = deptSecs.reduce((acc, s) => {
-            const cadets = s.cadets !== undefined ? s.cadets : (s.cadet_count !== undefined ? s.cadet_count : 0);
+        const dSections = Math.round(deptSecs.reduce((acc, s) => acc + (s.section_weight !== undefined ? s.section_weight : 1.0), 0) * 10) / 10;
+        const dSeats = Math.round(deptSecs.reduce((acc, s) => acc + ((s.cadets !== undefined ? s.cadets : (s.cadet_count !== undefined ? s.cadet_count : 0)) * (s.cadet_weight !== undefined ? s.cadet_weight : 1.0)), 0) * 10) / 10;
+        const dSCH = Math.round(deptSecs.reduce((acc, s) => {
+            const cadets = (s.cadets !== undefined ? s.cadets : (s.cadet_count !== undefined ? s.cadet_count : 0)) * (s.cadet_weight !== undefined ? s.cadet_weight : 1.0);
             const credits = s.credits !== undefined ? s.credits : (s.credit_units !== undefined ? s.credit_units : 3.0);
             return acc + (cadets * credits);
-        }, 0);
+        }, 0) * 10) / 10;
         const dCourses = new Set(deptSecs.map(s => `${s.subject} ${s.course_nbr}`)).size;
         const dSub10 = deptSecs.filter(s => s.is_sub10).length;
-        const dSub10Pct = dSections > 0 ? Math.round((dSub10 / dSections) * 1000) / 10 : 0;
+        const dSub10Pct = deptSecs.length > 0 ? Math.round((dSub10 / deptSecs.length) * 1000) / 10 : 0;
 
         // Size dist
         const dist = {'<=10': 0, '11-15': 0, '16-20': 0, '21-25': 0, '26+': 0};
@@ -414,6 +482,7 @@ function recomputeWorkbenchMetrics() {
                 civilian_vacancy_rate: civVacRate,
                 moa_adjunct: moaCount
             },
+            raw_sections_count: deptSecs.length,
             non_teaching_workload: {
                 admin_sections: Math.round(totAdminSec * 10) / 10,
                 research_sections: Math.round(totResSec * 10) / 10,
@@ -427,11 +496,12 @@ function recomputeWorkbenchMetrics() {
     // 5. School Calculations
     const computedSchools = (st.schools || []).map(sch => {
         const schDepts = computedDepartments.filter(d => (d.school_code || 'OTHER') === sch.school_code);
-        const schSecs = schDepts.reduce((acc, d) => acc + d.total_sections, 0);
-        const schSeats = schDepts.reduce((acc, d) => acc + d.total_cadet_seats, 0);
-        const schSCH = schDepts.reduce((acc, d) => acc + d.total_sch, 0);
+        const schSecs = Math.round(schDepts.reduce((acc, d) => acc + d.total_sections, 0) * 10) / 10;
+        const schSeats = Math.round(schDepts.reduce((acc, d) => acc + d.total_cadet_seats, 0) * 10) / 10;
+        const schSCH = Math.round(schDepts.reduce((acc, d) => acc + d.total_sch, 0) * 10) / 10;
         const schSub10 = schDepts.reduce((acc, d) => acc + d.sub10_sections_count, 0);
-        const schSub10Pct = schSecs > 0 ? Math.round((schSub10 / schSecs) * 1000) / 10 : 0;
+        const schRawSecs = schDepts.reduce((acc, d) => acc + (d.raw_sections_count || d.total_sections), 0);
+        const schSub10Pct = schRawSecs > 0 ? Math.round((schSub10 / schRawSecs) * 1000) / 10 : 0;
         const schFac = schDepts.reduce((acc, d) => acc + (d.teaching_faculty_count || 0), 0);
         const schAuth = schDepts.reduce((acc, d) => acc + ((d.billet_summary && d.billet_summary.authorized) || 0), 0);
 
@@ -456,16 +526,16 @@ function recomputeWorkbenchMetrics() {
     });
 
     // 6. Institutional KPIs
-    const instTotSecs = activeSecs.length;
-    const instTotSeats = activeSecs.reduce((acc, s) => acc + (s.cadets !== undefined ? s.cadets : (s.cadet_count !== undefined ? s.cadet_count : 0)), 0);
-    const instTotSCH = activeSecs.reduce((acc, s) => {
-        const cadets = s.cadets !== undefined ? s.cadets : (s.cadet_count !== undefined ? s.cadet_count : 0);
+    const instTotSecs = Math.round(activeSecs.reduce((acc, s) => acc + (s.section_weight !== undefined ? s.section_weight : 1.0), 0) * 10) / 10;
+    const instTotSeats = Math.round(activeSecs.reduce((acc, s) => acc + ((s.cadets !== undefined ? s.cadets : (s.cadet_count !== undefined ? s.cadet_count : 0)) * (s.cadet_weight !== undefined ? s.cadet_weight : 1.0)), 0) * 10) / 10;
+    const instTotSCH = Math.round(activeSecs.reduce((acc, s) => {
+        const cadets = (s.cadets !== undefined ? s.cadets : (s.cadet_count !== undefined ? s.cadet_count : 0)) * (s.cadet_weight !== undefined ? s.cadet_weight : 1.0);
         const credits = s.credits !== undefined ? s.credits : (s.credit_units !== undefined ? s.credit_units : 3.0);
         return acc + (cadets * credits);
-    }, 0);
-    const instAvgSize = instTotSecs > 0 ? Math.round((instTotSeats / instTotSecs) * 100) / 100 : 0;
+    }, 0) * 10) / 10;
+    const instAvgSize = activeSecs.length > 0 ? Math.round((instTotSeats / activeSecs.length) * 100) / 100 : 0;
     const instSub10 = activeSecs.filter(s => s.is_sub10).length;
-    const instSub10Pct = instTotSecs > 0 ? Math.round((instSub10 / instTotSecs) * 1000) / 10 : 0;
+    const instSub10Pct = activeSecs.length > 0 ? Math.round((instSub10 / activeSecs.length) * 1000) / 10 : 0;
     const teachingFacultyTotal = consolidatedFaculty.filter(f => f.weighted_sections > 0).length;
     const allBilletsTotal = consolidatedFaculty.length;
 
@@ -488,7 +558,7 @@ function recomputeWorkbenchMetrics() {
         schools: computedSchools,
         departments: computedDepartments,
         faculty_directory: consolidatedFaculty,
-        sections_audit: allSecs,
+        sections_audit: auditedSecs,
         active_sections: activeSecs
     };
 

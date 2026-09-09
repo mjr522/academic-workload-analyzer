@@ -114,6 +114,8 @@ function filterAndRenderCurriculumTable() {
         if (s.is_sub10) badges += '<span class="badge badge-sub10">≤ 10 Cadets</span> ';
         if (s.is_capstone) badges += '<span class="badge badge-capstone">Capstone</span> ';
         if (s.is_499) badges += '<span class="badge" style="background:#e0f2fe; color:#0369a1; font-weight:700;">499 Ind Study</span> ';
+        if (s.credit_type === 'Half Credit' || s.section_weight === 0.5) badges += '<span class="badge" style="background:#fef3c7; color:#b45309; font-weight:700;">½ Credit</span> ';
+        if (s.credit_type === 'Quarter Credit' || s.section_weight === 0.25) badges += '<span class="badge" style="background:#f3e8ff; color:#7e22ce; font-weight:700;">¼ Credit</span> ';
 
         tr.innerHTML = `
             <td><strong>${s.term || '2268'}</strong></td>

@@ -998,6 +998,12 @@ function renderDepartmentCoursesTable(deptCode) {
         if (s.is_499) {
             badges.push('<span class="badge" style="background:#e0f2fe; color:#0369a1; font-weight:700;" title="Independent Study (499)">499 Ind Study</span>');
         }
+        if (s.credit_type === 'Half Credit' || s.section_weight === 0.5) {
+            badges.push('<span class="badge" style="background:#fef3c7; color:#b45309; font-weight:700;" title="Half Credit Course (0.50x Section / 0.50x Cadet Contact)">½ Credit</span>');
+        }
+        if (s.credit_type === 'Quarter Credit' || s.section_weight === 0.25) {
+            badges.push('<span class="badge" style="background:#f3e8ff; color:#7e22ce; font-weight:700;" title="Quarter Credit Course (0.25x Section / 0.25x Cadet Contact)">¼ Credit</span>');
+        }
         const flagsHtml = badges.length > 0 ? badges.join(' ') : '<span style="color:#cbd5e1;">—</span>';
 
         tr.innerHTML = `

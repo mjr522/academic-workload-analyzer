@@ -35,17 +35,34 @@ class ExportEngine:
         # Package default institutional rules & tiers policy
         from analyzer.config import (
             CAPSTONE_COURSES, CROSS_LISTED_COURSES, TIER_EXPECTATIONS,
-            DEFAULT_EXCLUDED_SUBJECTS
+            DEFAULT_EXCLUDED_SUBJECTS, HALF_SEMESTER_COURSES
         )
         all_subjects = sorted(list(set(
             s['subject'] for s in self.metrics_data.get('sections_audit', [])
             if s.get('subject')
         )))
+
+        # Collect half-credit and quarter-credit courses from config and sections_audit
+        half_credit = set(HALF_SEMESTER_COURSES)
+        quarter_credit = set()
+        for s in self.metrics_data.get('sections_audit', []):
+            subj = s.get('subject')
+            cnum = s.get('course_nbr')
+            if subj and cnum:
+                pair_str = f"{subj} {cnum}".strip()
+                sec_wt = s.get('section_weight', 1.0)
+                if sec_wt == 0.5 and not s.get('is_499'):
+                    half_credit.add(pair_str)
+                elif sec_wt == 0.25:
+                    quarter_credit.add(pair_str)
+
         default_policy = {
             'included_subjects': all_subjects,
             'excluded_subjects': sorted(list(DEFAULT_EXCLUDED_SUBJECTS)),
             'capstone_courses': sorted(list(set(f"{c[0]} {c[1]}" for c in CAPSTONE_COURSES))),
             'capstone_pairs': [{'subject': c[0], 'course_nbr': c[1]} for c in sorted(list(CAPSTONE_COURSES))],
+            'half_credit_courses': sorted(list(half_credit)),
+            'quarter_credit_courses': sorted(list(quarter_credit)),
             'co_convened_pairs': [
                 [{'subject': pair[0][0], 'course_nbr': pair[0][1]}, {'subject': pair[1][0], 'course_nbr': pair[1][1]}]
                 for cluster in CROSS_LISTED_COURSES

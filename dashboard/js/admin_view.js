@@ -72,19 +72,25 @@ function renderAdminCurriculumControls() {
         }
     }
 
-    // Populate Subject dropdown for adding capstone courses
-    const capSubjSelect = document.getElementById('adminNewCapstoneSubject');
-    if (capSubjSelect && capSubjSelect.options.length <= 1) {
-        const curVal = capSubjSelect.value;
-        capSubjSelect.innerHTML = '<option value="">-- Select Subject --</option>';
-        allSubjects.forEach(sub => {
-            const opt = document.createElement('option');
-            opt.value = sub;
-            opt.textContent = sub;
-            capSubjSelect.appendChild(opt);
-        });
-        if (curVal) capSubjSelect.value = curVal;
+    // Helper to populate Subject dropdowns
+    function populateSubjectSelect(selectId) {
+        const select = document.getElementById(selectId);
+        if (select && select.options.length <= 1) {
+            const curVal = select.value;
+            select.innerHTML = '<option value="">-- Select Subject --</option>';
+            allSubjects.forEach(sub => {
+                const opt = document.createElement('option');
+                opt.value = sub;
+                opt.textContent = sub;
+                select.appendChild(opt);
+            });
+            if (curVal) select.value = curVal;
+        }
     }
+
+    populateSubjectSelect('adminNewCapstoneSubject');
+    populateSubjectSelect('adminNewHalfCreditSubject');
+    populateSubjectSelect('adminNewQuarterCreditSubject');
 
     // Capstone Catalog (Subject + Course Number) Tag Manager
     const capContainer = document.getElementById('adminCapstonesList');
@@ -104,6 +110,64 @@ function renderAdminCurriculumControls() {
             tag.innerHTML = `<span><strong>${capStr}</strong></span><button type="button" onclick="removeCapstoneCourse('${escapedStr}')" style="background:none; border:none; color:#6b21a8; font-size:14px; font-weight:bold; cursor:pointer; padding:0 2px;" title="Remove ${capStr} from capstones">&times;</button>`;
             capContainer.appendChild(tag);
         });
+    }
+
+    // 1/2 Credit Courses Tag Manager
+    const halfContainer = document.getElementById('adminHalfCreditList');
+    const halfBadge = document.getElementById('adminHalfCreditCountBadge');
+    if (halfContainer) {
+        halfContainer.innerHTML = '';
+        const halfList = policy.halfCreditCourses || [];
+        if (halfBadge) halfBadge.textContent = `${halfList.length} course${halfList.length === 1 ? '' : 's'}`;
+        if (halfList.length === 0) {
+            halfContainer.innerHTML = '<span style="font-size:12px; color:var(--text-muted); font-style:italic;">No ½ credit courses configured (all courses count 1.00x full credit by default).</span>';
+        } else {
+            halfList.forEach(cItem => {
+                const cStr = typeof cItem === 'string' ? cItem : `${cItem.subject} ${cItem.course_nbr}`;
+                const tag = document.createElement('span');
+                tag.className = 'badge';
+                tag.style.background = '#fef3c7';
+                tag.style.color = '#92400e';
+                tag.style.border = '1px solid #fde68a';
+                tag.style.padding = '5px 10px';
+                tag.style.fontSize = '12px';
+                tag.style.display = 'inline-flex';
+                tag.style.alignItems = 'center';
+                tag.style.gap = '8px';
+                const escapedStr = cStr.replace(/'/g, "\\'");
+                tag.innerHTML = `<span><strong>${cStr}</strong></span><button type="button" onclick="removeHalfCreditCourse('${escapedStr}')" style="background:none; border:none; color:#b45309; font-size:14px; font-weight:bold; cursor:pointer; padding:0 2px; line-height:1;" title="Remove ${cStr} (revert to full credit)">&times;</button>`;
+                halfContainer.appendChild(tag);
+            });
+        }
+    }
+
+    // 1/4 Credit Courses Tag Manager
+    const quarterContainer = document.getElementById('adminQuarterCreditList');
+    const quarterBadge = document.getElementById('adminQuarterCreditCountBadge');
+    if (quarterContainer) {
+        quarterContainer.innerHTML = '';
+        const quarterList = policy.quarterCreditCourses || [];
+        if (quarterBadge) quarterBadge.textContent = `${quarterList.length} course${quarterList.length === 1 ? '' : 's'}`;
+        if (quarterList.length === 0) {
+            quarterContainer.innerHTML = '<span style="font-size:12px; color:var(--text-muted); font-style:italic;">No ¼ credit courses configured (all courses count 1.00x full credit by default).</span>';
+        } else {
+            quarterList.forEach(cItem => {
+                const cStr = typeof cItem === 'string' ? cItem : `${cItem.subject} ${cItem.course_nbr}`;
+                const tag = document.createElement('span');
+                tag.className = 'badge';
+                tag.style.background = '#f3e8ff';
+                tag.style.color = '#6b21a8';
+                tag.style.border = '1px solid #e9d5ff';
+                tag.style.padding = '5px 10px';
+                tag.style.fontSize = '12px';
+                tag.style.display = 'inline-flex';
+                tag.style.alignItems = 'center';
+                tag.style.gap = '8px';
+                const escapedStr = cStr.replace(/'/g, "\\'");
+                tag.innerHTML = `<span><strong>${cStr}</strong></span><button type="button" onclick="removeQuarterCreditCourse('${escapedStr}')" style="background:none; border:none; color:#7e22ce; font-size:14px; font-weight:bold; cursor:pointer; padding:0 2px; line-height:1;" title="Remove ${cStr} (revert to full credit)">&times;</button>`;
+                quarterContainer.appendChild(tag);
+            });
+        }
     }
 
     // 499 Toggle
@@ -191,6 +255,118 @@ function removeCapstoneCourse(val) {
     if (!policy.capstoneCourses) return;
     const target = String(val).trim().toUpperCase();
     policy.capstoneCourses = policy.capstoneCourses.filter(c => {
+        const str = typeof c === 'string' ? c : `${c.subject} ${c.course_nbr}`;
+        return str.trim().toUpperCase() !== target;
+    });
+    recomputeWorkbenchMetrics();
+    renderAdminCurriculumControls();
+}
+
+function addHalfCreditCourse() {
+    const subjSelect = document.getElementById('adminNewHalfCreditSubject');
+    const input = document.getElementById('adminNewHalfCreditInput');
+    if (!subjSelect || !input) return;
+
+    const subj = subjSelect.value.trim().toUpperCase();
+    const num = input.value.trim().toUpperCase();
+
+    if (!subj) {
+        alert("Please select a Subject from the dropdown.");
+        return;
+    }
+    if (!num) {
+        alert("Please enter a Course Number (e.g. 101).");
+        return;
+    }
+
+    const val = `${subj} ${num}`;
+    const policy = window.workbenchState.policy;
+    if (!policy.halfCreditCourses) policy.halfCreditCourses = [];
+    if (!policy.quarterCreditCourses) policy.quarterCreditCourses = [];
+
+    const exists = policy.halfCreditCourses.some(c => {
+        const str = typeof c === 'string' ? c : `${c.subject} ${c.course_nbr}`;
+        return str.trim().toUpperCase() === val;
+    });
+
+    if (exists) {
+        alert(`Course "${val}" is already designated as a ½ credit course.`);
+        return;
+    }
+
+    // If it was in quarter-credit, remove from quarter-credit
+    policy.quarterCreditCourses = policy.quarterCreditCourses.filter(c => {
+        const str = typeof c === 'string' ? c : `${c.subject} ${c.course_nbr}`;
+        return str.trim().toUpperCase() !== val;
+    });
+
+    policy.halfCreditCourses.push(val);
+    input.value = '';
+    recomputeWorkbenchMetrics();
+    renderAdminCurriculumControls();
+}
+
+function removeHalfCreditCourse(val) {
+    const policy = window.workbenchState.policy;
+    if (!policy.halfCreditCourses) return;
+    const target = String(val).trim().toUpperCase();
+    policy.halfCreditCourses = policy.halfCreditCourses.filter(c => {
+        const str = typeof c === 'string' ? c : `${c.subject} ${c.course_nbr}`;
+        return str.trim().toUpperCase() !== target;
+    });
+    recomputeWorkbenchMetrics();
+    renderAdminCurriculumControls();
+}
+
+function addQuarterCreditCourse() {
+    const subjSelect = document.getElementById('adminNewQuarterCreditSubject');
+    const input = document.getElementById('adminNewQuarterCreditInput');
+    if (!subjSelect || !input) return;
+
+    const subj = subjSelect.value.trim().toUpperCase();
+    const num = input.value.trim().toUpperCase();
+
+    if (!subj) {
+        alert("Please select a Subject from the dropdown.");
+        return;
+    }
+    if (!num) {
+        alert("Please enter a Course Number (e.g. 251A).");
+        return;
+    }
+
+    const val = `${subj} ${num}`;
+    const policy = window.workbenchState.policy;
+    if (!policy.halfCreditCourses) policy.halfCreditCourses = [];
+    if (!policy.quarterCreditCourses) policy.quarterCreditCourses = [];
+
+    const exists = policy.quarterCreditCourses.some(c => {
+        const str = typeof c === 'string' ? c : `${c.subject} ${c.course_nbr}`;
+        return str.trim().toUpperCase() === val;
+    });
+
+    if (exists) {
+        alert(`Course "${val}" is already designated as a ¼ credit course.`);
+        return;
+    }
+
+    // If it was in half-credit, remove from half-credit
+    policy.halfCreditCourses = policy.halfCreditCourses.filter(c => {
+        const str = typeof c === 'string' ? c : `${c.subject} ${c.course_nbr}`;
+        return str.trim().toUpperCase() !== val;
+    });
+
+    policy.quarterCreditCourses.push(val);
+    input.value = '';
+    recomputeWorkbenchMetrics();
+    renderAdminCurriculumControls();
+}
+
+function removeQuarterCreditCourse(val) {
+    const policy = window.workbenchState.policy;
+    if (!policy.quarterCreditCourses) return;
+    const target = String(val).trim().toUpperCase();
+    policy.quarterCreditCourses = policy.quarterCreditCourses.filter(c => {
         const str = typeof c === 'string' ? c : `${c.subject} ${c.course_nbr}`;
         return str.trim().toUpperCase() !== target;
     });
@@ -375,6 +551,12 @@ function resetPolicyToDefaults() {
             'CYBERSCI 438', 'DATASCI 421', 'ECE 463', 'ENGLISH 489', 'GEO 497',
             'LDRSHP 400', 'LDRSHP 400X', 'MATH 420', 'MECHENGR 491', 'MGT 472', 'OPSRSCH 421',
             'PHYSICS 490', 'POLSCI 491', 'SYSENGR 491'
+        ],
+        halfCreditCourses: [
+            'COMMSTRT 101', 'COMMSTRT 101X'
+        ],
+        quarterCreditCourses: [
+            'SPACE 251A', 'SPACE 251C', 'SPACE 252B', 'SPACE 252D', 'SPACE 472A', 'SPACE 472B'
         ],
         excludeCapstones: true,
         exclude499s: true,

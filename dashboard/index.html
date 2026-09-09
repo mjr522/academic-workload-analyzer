@@ -721,6 +721,68 @@
                 </div>
             </div>
 
+            <!-- Partial Credit Course Policies (1/2 Credit & 1/4 Credit) -->
+            <div class="card">
+                <div class="card-header">
+                    <div>
+                        <div class="card-title">⚖️ Partial Credit Course Policies (½ Credit &amp; ¼ Credit)</div>
+                        <div class="card-desc">
+                            Designate courses that count for fractional section preparation and cadet contact loads (e.g. modular or half-semester courses). Courses not listed here automatically receive Full Credit (1.00x).
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid-2">
+                    <!-- Half-Credit Courses (0.50x) -->
+                    <div style="background:#fffbeb; border:1px solid #fef3c7; border-radius:8px; padding:16px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                            <div style="font-weight:700; font-size:13.5px; color:#92400e;">
+                                🌗 ½ Credit Courses (0.50x Section / 0.50x Cadets)
+                            </div>
+                            <span id="adminHalfCreditCountBadge" class="badge" style="background:#fde68a; color:#78350f; font-weight:700;">0 courses</span>
+                        </div>
+                        <div style="font-size:12px; color:#b45309; margin-bottom:12px; line-height:1.4;">
+                            Half-semester or 2-credit classes (e.g. <code>COMMSTRT 101</code>, <code>COMMSTRT 101X</code>). Counted as 0.50 section prep and 0.50 cadet contact.
+                        </div>
+
+                        <div id="adminHalfCreditList" style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px; min-height:36px; background:#fff; padding:8px; border-radius:6px; border:1px solid #fde68a;">
+                        </div>
+
+                        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                            <select id="adminNewHalfCreditSubject" style="padding:6px 10px; font-size:12px; border:1px solid var(--border); border-radius:6px; background:#fff; min-width:140px;">
+                                <option value="">-- Select Subject --</option>
+                            </select>
+                            <input type="text" id="adminNewHalfCreditInput" placeholder="Course # (e.g. 101)" style="padding:6px 10px; font-size:12px; border:1px solid var(--border); border-radius:6px; width:120px;" onkeydown="if(event.key==='Enter') addHalfCreditCourse()">
+                            <button class="btn" style="background:#d97706; color:#fff; font-weight:600; font-size:12px; border:none; padding:6px 12px; cursor:pointer;" onclick="addHalfCreditCourse()">+ Add ½ Credit</button>
+                        </div>
+                    </div>
+
+                    <!-- Quarter-Credit Courses (0.25x) -->
+                    <div style="background:#faf5ff; border:1px solid #f3e8ff; border-radius:8px; padding:16px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                            <div style="font-weight:700; font-size:13.5px; color:#6b21a8;">
+                                🌘 ¼ Credit Courses (0.25x Section / 0.25x Cadets)
+                            </div>
+                            <span id="adminQuarterCreditCountBadge" class="badge" style="background:#e9d5ff; color:#581c87; font-weight:700;">0 courses</span>
+                        </div>
+                        <div style="font-size:12px; color:#7e22ce; margin-bottom:12px; line-height:1.4;">
+                            Modular quarter-semester blocks (e.g. <code>SPACE 251A</code>, <code>251C</code>, <code>252B</code>). Counted as 0.25 section prep and 0.25 cadet contact.
+                        </div>
+
+                        <div id="adminQuarterCreditList" style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px; min-height:36px; background:#fff; padding:8px; border-radius:6px; border:1px solid #e9d5ff;">
+                        </div>
+
+                        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                            <select id="adminNewQuarterCreditSubject" style="padding:6px 10px; font-size:12px; border:1px solid var(--border); border-radius:6px; background:#fff; min-width:140px;">
+                                <option value="">-- Select Subject --</option>
+                            </select>
+                            <input type="text" id="adminNewQuarterCreditInput" placeholder="Course # (e.g. 251A)" style="padding:6px 10px; font-size:12px; border:1px solid var(--border); border-radius:6px; width:120px;" onkeydown="if(event.key==='Enter') addQuarterCreditCourse()">
+                            <button class="btn" style="background:#7e22ce; color:#fff; font-weight:600; font-size:12px; border:none; padding:6px 12px; cursor:pointer;" onclick="addQuarterCreditCourse()">+ Add ¼ Credit</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Dynamic Faculty Tier Manager -->
             <div class="card">
                 <div class="card-header">
