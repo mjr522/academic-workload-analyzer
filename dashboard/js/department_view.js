@@ -11,6 +11,11 @@ let currentDeptFacultyCode = null;
 let currentDeptCoursesSort = { col: 'course', dir: 'asc' };
 let currentDeptCoursesCode = null;
 
+let currentSchoolDrilldownCode = null;
+let currentSchoolDeptsSort = { col: 'dept_code', dir: 'asc' };
+let currentSchoolFacultySort = { col: 'instructor', dir: 'asc' };
+let currentSchoolCoursesSort = { col: 'course', dir: 'asc' };
+
 function initDepartmentDropdown(departments) {
     const select = document.getElementById('deptSelect');
     if (!select) return;
@@ -26,12 +31,25 @@ function initDepartmentDropdown(departments) {
     schoolGroups.forEach(grp => {
         const groupDepts = (departments || []).filter(d => (d.school_code || 'OTHER') === grp.code);
         if (groupDepts.length > 0) {
+            // Sort departments alphabetically by dept_code
+            groupDepts.sort((a, b) => (a.dept_code || '').localeCompare(b.dept_code || ''));
+
             const optgroup = document.createElement('optgroup');
             optgroup.label = grp.label;
+
+            // Make School selectable at top of optgroup
+            if (grp.code !== 'OTHER') {
+                const schoolOpt = document.createElement('option');
+                schoolOpt.value = `SCHOOL:${grp.code}`;
+                schoolOpt.textContent = `🏛️ ${grp.code} — School Overview & Department Comparison`;
+                schoolOpt.style.fontWeight = 'bold';
+                optgroup.appendChild(schoolOpt);
+            }
+
             groupDepts.forEach(d => {
                 const opt = document.createElement('option');
                 opt.value = d.dept_code;
-                opt.textContent = `${d.dept_code} — ${d.dept_name}`;
+                opt.innerHTML = `&nbsp;&nbsp;&nbsp;&nbsp;${d.dept_code} — ${d.dept_name}`;
                 optgroup.appendChild(opt);
             });
             select.appendChild(optgroup);
@@ -39,14 +57,26 @@ function initDepartmentDropdown(departments) {
     });
 
     select.onchange = () => {
-        const selectedCode = select.value;
-        renderDepartmentDetails(selectedCode);
+        renderDrilldown(select.value);
     };
 
     if (select.value) {
-        renderDepartmentDetails(select.value);
+        renderDrilldown(select.value);
     } else if (departments && departments.length > 0) {
-        renderDepartmentDetails(departments[0].dept_code);
+        renderDrilldown(departments[0].dept_code);
+    }
+}
+
+function renderDrilldown(unitCode) {
+    if (!unitCode) {
+        const sel = document.getElementById('deptSelect');
+        unitCode = sel ? sel.value : null;
+    }
+    if (!unitCode) return;
+    if (unitCode.startsWith('SCHOOL:')) {
+        renderSchoolDetails(unitCode.replace('SCHOOL:', ''));
+    } else {
+        renderDepartmentDetails(unitCode);
     }
 }
 
@@ -57,6 +87,11 @@ function setTextSafe(id, val) {
 
 function renderDepartmentDetails(deptCode) {
     currentDeptFacultyCode = deptCode;
+    const deptCont = document.getElementById('deptDrilldownContainer');
+    const schoolCont = document.getElementById('schoolDrilldownContainer');
+    if (deptCont) deptCont.style.display = 'block';
+    if (schoolCont) schoolCont.style.display = 'none';
+
     const data = (typeof getActiveWorkloadData === 'function') ? getActiveWorkloadData() : window.currentWorkloadData;
     if (!data) return;
 
@@ -1021,3 +1056,451 @@ function renderDepartmentCoursesTable(deptCode) {
         tbody.appendChild(tr);
     });
 }
+
+// =========================================================================
+// SCHOOL DRILLDOWN CONTROLLERS
+// =========================================================================
+
+function renderSchoolDetails(schoolCode) {
+    currentSchoolDrilldownCode = schoolCode;
+    const deptCont = document.getElementById('deptDrilldownContainer');
+    const schoolCont = document.getElementById('schoolDrilldownContainer');
+    if (deptCont) deptCont.style.display = 'none';
+    if (schoolCont) schoolCont.style.display = 'block';
+
+    const data = (typeof getActiveWorkloadData === 'function') ? getActiveWorkloadData() : window.currentWorkloadData;
+    if (!data) return;
+
+    const school = (data.schools || []).find(s => s.school_code === schoolCode) || {
+        school_code: schoolCode,
+        school_name: schoolCode,
+        icon: '🏛️'
+    };
+
+    const schoolDepts = (data.departments || []).filter(d => (d.school_code || 'OTHER') === schoolCode);
+
+    // Update Title & Banner
+    setTextSafe('schoolTitle', `${school.icon || '🏛️'} ${school.school_name} (${school.school_code})`);
+    setTextSafe('schoolDesc', `${school.dean ? school.dean + ' — ' : ''}Comprehensive school-level academic footprint, cross-department comparison, and personnel directory`);
+    setTextSafe('deptSubjs', `Academic Departments: ${schoolDepts.map(d => d.dept_code).join(', ')}`);
+    const deanBadge = document.getElementById('schoolDeanBadgeDetail');
+    if (deanBadge) {
+        deanBadge.textContent = school.dean ? `Dean: ${school.dean}` : '';
+    }
+
+    // Dynamic aggregations from departments
+    const totDepts = schoolDepts.length;
+    const totSecs = school.total_sections !== undefined ? school.total_sections : Math.round(schoolDepts.reduce((acc, d) => acc + (d.total_sections || 0), 0) * 10) / 10;
+    const totSeats = school.total_cadet_seats !== undefined ? school.total_cadet_seats : Math.round(schoolDepts.reduce((acc, d) => acc + (d.total_cadet_seats || 0), 0) * 10) / 10;
+    const totSCH = school.total_sch !== undefined ? school.total_sch : Math.round(schoolDepts.reduce((acc, d) => acc + (d.total_sch || 0), 0) * 10) / 10;
+    const totFac = school.teaching_faculty_count !== undefined ? school.teaching_faculty_count : schoolDepts.reduce((acc, d) => acc + (d.teaching_faculty_count || d.faculty_count || 0), 0);
+    const totBillets = school.all_billets_count !== undefined ? school.all_billets_count : schoolDepts.reduce((acc, d) => acc + ((d.billet_summary && d.billet_summary.authorized) || d.faculty_count || 0), 0);
+    const sub10Count = school.sub10_sections_count !== undefined ? school.sub10_sections_count : schoolDepts.reduce((acc, d) => acc + (d.sub10_sections_count || 0), 0);
+    const sub10Pct = school.sub10_percentage !== undefined ? school.sub10_percentage : (totSecs > 0 ? Math.round((sub10Count / totSecs) * 1000) / 10 : 0);
+
+    // KPIs
+    setTextSafe('schoolMetricDepts', totDepts);
+    setTextSafe('schoolMetricSections', totSecs);
+    setTextSafe('schoolMetricSeats', Math.round(totSeats).toLocaleString());
+    setTextSafe('schoolMetricSCH', Math.round(totSCH).toLocaleString());
+    setTextSafe('schoolMetricFaculty', `${totFac} teaching / ${totBillets} billets`);
+    setTextSafe('schoolMetricSub10', `${sub10Count} (${sub10Pct}%)`);
+
+    // Render Department Comparative Table
+    renderSchoolDeptsTable(schoolDepts);
+
+    // Aggregated section size distribution for charts
+    const schSizeDist = {'<=10': 0, '11-15': 0, '16-20': 0, '21-25': 0, '26+': 0};
+    schoolDepts.forEach(d => {
+        if (d.section_size_distribution) {
+            for (const k of Object.keys(schSizeDist)) {
+                schSizeDist[k] += (d.section_size_distribution[k] || 0);
+            }
+        }
+    });
+
+    // Render Visualizations
+    try {
+        if (typeof renderSchoolDeptChart === 'function') {
+            renderSchoolDeptChart(schoolDepts);
+        }
+        if (typeof renderSchoolSizeDistChart === 'function') {
+            renderSchoolSizeDistChart(schSizeDist);
+        }
+    } catch (e) {
+        console.error("Error rendering school charts:", e);
+    }
+
+    // Render School Faculty
+    renderSchoolFacultyTable(schoolCode);
+
+    // Render School Courses
+    renderSchoolCoursesTable(schoolCode);
+}
+
+function renderSchoolDeptsTable(schoolDepts) {
+    const tbody = document.getElementById('schoolDeptsTbody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    const data = (typeof getActiveWorkloadData === 'function') ? getActiveWorkloadData() : window.currentWorkloadData;
+    const depts = schoolDepts || (data ? (data.departments || []).filter(d => (d.school_code || 'OTHER') === currentSchoolDrilldownCode) : []);
+
+    // Update sort icons
+    const cols = ['dept_code', 'dept_name', 'total_courses', 'total_sections', 'total_cadet_seats', 'total_sch', 'teaching_faculty_count', 'sections_per_inst_mean', 'sub10_percentage'];
+    cols.forEach(c => {
+        const icon = document.getElementById(`th-schooldepts-${c}`);
+        if (icon) {
+            if (currentSchoolDeptsSort.col === c) {
+                icon.textContent = currentSchoolDeptsSort.dir === 'desc' ? '▼' : '▲';
+            } else {
+                icon.textContent = '↕';
+            }
+        }
+    });
+
+    // Sorting
+    const sorted = depts.slice().sort((a, b) => {
+        const c = currentSchoolDeptsSort.col;
+        const dir = currentSchoolDeptsSort.dir;
+        let valA = a[c];
+        let valB = b[c];
+        if (c === 'teaching_faculty_count') {
+            valA = a.teaching_faculty_count || a.faculty_count || 0;
+            valB = b.teaching_faculty_count || b.faculty_count || 0;
+        }
+        if (typeof valA === 'number' || typeof valB === 'number') {
+            valA = Number(valA) || 0;
+            valB = Number(valB) || 0;
+            return dir === 'desc' ? (valB - valA) : (valA - valB);
+        }
+        valA = String(valA || '').toLowerCase();
+        valB = String(valB || '').toLowerCase();
+        return dir === 'desc' ? valB.localeCompare(valA) : valA.localeCompare(valB);
+    });
+
+    sorted.forEach(d => {
+        const tr = document.createElement('tr');
+        const facTeaching = d.teaching_faculty_count !== undefined ? d.teaching_faculty_count : (d.faculty_count || 0);
+        const facAuth = (d.billet_summary && d.billet_summary.authorized) !== undefined ? d.billet_summary.authorized : facTeaching;
+        const meanSecs = d.sections_per_inst_mean !== undefined ? Number(d.sections_per_inst_mean).toFixed(1) : '—';
+        const sub10Display = `${d.sub10_sections_count || 0} (${d.sub10_percentage || 0}%)`;
+
+        tr.innerHTML = `
+            <td><strong style="color:var(--primary);">${d.dept_code}</strong></td>
+            <td style="font-weight:600;">${d.dept_name}</td>
+            <td class="num">${d.total_courses || 0}</td>
+            <td class="num"><strong>${d.total_sections || 0}</strong></td>
+            <td class="num">${(d.total_cadet_seats || 0).toLocaleString()}</td>
+            <td class="num"><strong style="color:var(--primary);">${Math.round(d.total_sch || 0).toLocaleString()}</strong></td>
+            <td class="num">${facTeaching} / ${facAuth}</td>
+            <td class="num">${meanSecs}</td>
+            <td class="num" style="${(d.sub10_percentage || 0) > 30 ? 'color:#b45309; font-weight:700;' : ''}">${sub10Display}</td>
+            <td style="text-align:center;">
+                <button class="btn btn-sm btn-primary" onclick="selectDepartmentDrilldown('${d.dept_code}')" style="padding:4px 10px; font-size:11.5px; font-weight:600; cursor:pointer;" title="View detailed workbench for ${d.dept_code}">🔍 View Dept</button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+function sortSchoolDeptsTable(col) {
+    if (currentSchoolDeptsSort.col === col) {
+        currentSchoolDeptsSort.dir = currentSchoolDeptsSort.dir === 'asc' ? 'desc' : 'asc';
+    } else {
+        currentSchoolDeptsSort.col = col;
+        currentSchoolDeptsSort.dir = ['dept_code', 'dept_name'].includes(col) ? 'asc' : 'desc';
+    }
+    renderSchoolDeptsTable();
+}
+
+function selectDepartmentDrilldown(deptCode) {
+    const sel = document.getElementById('deptSelect');
+    if (sel) {
+        sel.value = deptCode;
+    }
+    renderDrilldown(deptCode);
+}
+
+function renderSchoolFacultyTable(schoolCode) {
+    schoolCode = schoolCode || currentSchoolDrilldownCode;
+    const tbody = document.getElementById('schoolFacultyTbody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    const data = (typeof getActiveWorkloadData === 'function') ? getActiveWorkloadData() : window.currentWorkloadData;
+    if (!data) return;
+
+    const schoolDepts = (data.departments || []).filter(d => (d.school_code || 'OTHER') === schoolCode);
+    const deptCodes = new Set(schoolDepts.map(d => d.dept_code));
+
+    let faculty = (data.faculty_directory || []).filter(f => f.school_code === schoolCode || deptCodes.has(f.primary_dept));
+
+    // Update sort icons
+    const cols = ['instructor', 'primary_dept', 'expected_tier', 'expected_sections', 'relief_sections', 'weighted_sections', 'section_delta'];
+    cols.forEach(c => {
+        const icon = document.getElementById(`th-schoolfac-${c}`);
+        if (icon) {
+            if (currentSchoolFacultySort.col === c) {
+                icon.textContent = currentSchoolFacultySort.dir === 'desc' ? '▼' : '▲';
+            } else {
+                icon.textContent = '↕';
+            }
+        }
+    });
+
+    // Text search filter
+    const searchInput = document.getElementById('schoolFacultySearch');
+    const q = searchInput ? searchInput.value.trim().toLowerCase() : '';
+    if (q) {
+        faculty = faculty.filter(f => {
+            const name = (f.instructor || '').toLowerCase();
+            const dept = (f.primary_dept || '').toLowerCase();
+            const tier = (f.expected_tier || f.tier_key || '').toLowerCase();
+            return name.includes(q) || dept.includes(q) || tier.includes(q);
+        });
+    }
+
+    if (faculty.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="10" style="text-align:center; color:#64748b; padding:16px;">No faculty found matching the current criteria in this school.</td></tr>`;
+        return;
+    }
+
+    // Sort
+    faculty.sort((a, b) => {
+        const c = currentSchoolFacultySort.col;
+        const dir = currentSchoolFacultySort.dir;
+        let valA, valB;
+        if (c === 'relief_sections') {
+            valA = (a.section_equivalents ? (a.section_equivalents.admin + a.section_equivalents.research + a.section_equivalents.labops) : 0);
+            valB = (b.section_equivalents ? (b.section_equivalents.admin + b.section_equivalents.research + b.section_equivalents.labops) : 0);
+        } else if (c === 'expected_sections') {
+            valA = a.expected_sections !== undefined ? Number(a.expected_sections) : 3.0;
+            valB = b.expected_sections !== undefined ? Number(b.expected_sections) : 3.0;
+        } else {
+            valA = a[c];
+            valB = b[c];
+        }
+
+        if (typeof valA === 'number' || typeof valB === 'number') {
+            valA = Number(valA) || 0;
+            valB = Number(valB) || 0;
+            return dir === 'desc' ? (valB - valA) : (valA - valB);
+        }
+        valA = String(valA || '').toLowerCase();
+        valB = String(valB || '').toLowerCase();
+        return dir === 'desc' ? valB.localeCompare(valA) : valA.localeCompare(valB);
+    });
+
+    faculty.forEach((f, idx) => {
+        const rawName = f.instructor;
+        const displayName = window.maskFacultyNames ? `Faculty ${String(idx + 1).padStart(2, '0')}` : rawName;
+        const bType = f.billet_type || 'Military';
+        const occ = f.occupancy_status || 'Filled';
+        const isVacant = (occ === 'Vacant');
+
+        const reliefSec = (f.section_equivalents ? (f.section_equivalents.admin + f.section_equivalents.research + f.section_equivalents.labops) : 0).toFixed(1);
+
+        const delta = f.section_delta !== undefined ? f.section_delta : 0;
+        let deltaBadge = '';
+        if (delta > 0) {
+            deltaBadge = `<span class="badge" style="background:#eff6ff; color:#1d4ed8; font-size:11px;">+${delta.toFixed(1)}</span>`;
+        } else if (delta < 0) {
+            deltaBadge = `<span class="badge" style="background:#fef3c7; color:#b45309; font-size:11px;">${delta.toFixed(1)}</span>`;
+        } else {
+            deltaBadge = `<span class="badge" style="background:#dcfce7; color:#15803d; font-size:11px;">0.0 (Target)</span>`;
+        }
+
+        const nameDisplay = isVacant
+            ? `<span style="color:#b45309; font-weight:700;">${displayName} <span class="badge" style="background:#fee2e2; color:#b91c1c; font-size:10px;">VACANT</span></span>`
+            : `<strong style="color:var(--primary); cursor:pointer;" onclick="openFacultyModal('${rawName.replace(/'/g, "\\'")}')" title="Click to view detailed teaching assignments">${displayName}</strong>`;
+
+        const tr = document.createElement('tr');
+        if (isVacant) tr.style.background = '#fffdf7';
+
+        tr.innerHTML = `
+            <td>${nameDisplay}</td>
+            <td><span class="badge badge-dept">${f.primary_dept || '—'}</span></td>
+            <td><span style="font-size:12px; font-weight:600;">${bType === 'Military' ? '🎖️ Mil' : (bType === 'Civilian' ? '🏛️ Civ' : '🤝 MOA')}</span></td>
+            <td><span class="badge ${occ === 'Vacant' ? 'badge-sub10' : 'badge-status'}" style="font-size:11px;">${occ}</span></td>
+            <td><span style="font-size:12px;">${f.expected_tier || f.tier_key || 'Line Faculty'}</span></td>
+            <td class="num">${f.expected_sections !== undefined ? Number(f.expected_sections).toFixed(1) : '3.0'}</td>
+            <td class="num" style="font-size:12px; color:var(--text-muted);" title="Admin: ${(f.section_equivalents?.admin || 0).toFixed(1)}s | Research: ${(f.section_equivalents?.research || 0).toFixed(1)}s | LabOps: ${(f.section_equivalents?.labops || 0).toFixed(1)}s">+${reliefSec}s</td>
+            <td class="num"><strong>${f.weighted_sections || 0}</strong></td>
+            <td class="num">${deltaBadge}</td>
+            <td style="text-align:center;">
+                <button class="btn btn-sm" onclick="selectDepartmentDrilldown('${f.primary_dept}')" style="padding:2px 8px; font-size:11px; cursor:pointer;" title="Go to ${f.primary_dept} Workbench">Go to Dept</button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+function sortSchoolFacultyTable(col) {
+    if (currentSchoolFacultySort.col === col) {
+        currentSchoolFacultySort.dir = currentSchoolFacultySort.dir === 'asc' ? 'desc' : 'asc';
+    } else {
+        currentSchoolFacultySort.col = col;
+        currentSchoolFacultySort.dir = ['instructor', 'primary_dept', 'expected_tier'].includes(col) ? 'asc' : 'desc';
+    }
+    renderSchoolFacultyTable();
+}
+
+function filterSchoolFacultyTable() {
+    renderSchoolFacultyTable();
+}
+
+function renderSchoolCoursesTable(schoolCode) {
+    schoolCode = schoolCode || currentSchoolDrilldownCode;
+    const tbody = document.getElementById('schoolCoursesTbody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    const data = (typeof getActiveWorkloadData === 'function') ? getActiveWorkloadData() : window.currentWorkloadData;
+    if (!data) return;
+
+    const schoolDepts = (data.departments || []).filter(d => (d.school_code || 'OTHER') === schoolCode);
+    const deptCodes = new Set(schoolDepts.map(d => d.dept_code));
+
+    let sections = (data.sections_audit || data.sections || []).filter(s => s.school_code === schoolCode || deptCodes.has(s.department));
+
+    // Update sort icons
+    const cols = ['course', 'title', 'department', 'section', 'term', 'cadet_count', 'credit_units'];
+    cols.forEach(c => {
+        const icon = document.getElementById(`th-schoolcourses-${c}`);
+        if (icon) {
+            if (currentSchoolCoursesSort.col === c) {
+                icon.textContent = currentSchoolCoursesSort.dir === 'desc' ? '▼' : '▲';
+            } else {
+                icon.textContent = '↕';
+            }
+        }
+    });
+
+    // Search filter
+    const searchInput = document.getElementById('schoolCourseSearch');
+    const q = searchInput ? searchInput.value.trim().toLowerCase() : '';
+    if (q) {
+        sections = sections.filter(s => {
+            const cName = `${s.subject || ''} ${s.course_nbr || ''}`.toLowerCase();
+            const title = (s.title || '').toLowerCase();
+            const sec = (s.section || '').toLowerCase();
+            const dept = (s.department || '').toLowerCase();
+            const insts = (s.instructors || []).join(' ').toLowerCase();
+            return cName.includes(q) || title.includes(q) || sec.includes(q) || dept.includes(q) || insts.includes(q);
+        });
+    }
+
+    if (sections.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; color:#64748b; padding:16px;">No course sections found matching the criteria in this school.</td></tr>`;
+        return;
+    }
+
+    // Sort
+    sections.sort((a, b) => {
+        const c = currentSchoolCoursesSort.col;
+        const dir = currentSchoolCoursesSort.dir;
+        let valA, valB;
+        switch (c) {
+            case 'course':
+                valA = `${a.subject} ${a.course_nbr}`;
+                valB = `${b.subject} ${b.course_nbr}`;
+                break;
+            case 'title':
+                valA = String(a.title || '').toLowerCase();
+                valB = String(b.title || '').toLowerCase();
+                break;
+            case 'department':
+                valA = String(a.department || '').toLowerCase();
+                valB = String(b.department || '').toLowerCase();
+                break;
+            case 'section':
+                valA = String(a.section || '').toLowerCase();
+                valB = String(b.section || '').toLowerCase();
+                break;
+            case 'term':
+                valA = String(a.term || '');
+                valB = String(b.term || '');
+                break;
+            case 'cadet_count':
+                valA = a.cadet_count !== undefined ? a.cadet_count : (a.cadets || 0);
+                valB = b.cadet_count !== undefined ? b.cadet_count : (b.cadets || 0);
+                break;
+            case 'credit_units':
+                valA = a.credit_units !== undefined ? a.credit_units : (a.credits || 0);
+                valB = b.credit_units !== undefined ? b.credit_units : (b.credits || 0);
+                break;
+            default:
+                valA = `${a.subject} ${a.course_nbr}`;
+                valB = `${b.subject} ${b.course_nbr}`;
+        }
+
+        if (typeof valA === 'number' || typeof valB === 'number') {
+            valA = Number(valA) || 0;
+            valB = Number(valB) || 0;
+            return dir === 'desc' ? (valB - valA) : (valA - valB);
+        }
+        valA = String(valA || '');
+        valB = String(valB || '');
+        return dir === 'desc' ? valB.localeCompare(valA) : valA.localeCompare(valB);
+    });
+
+    const knownFacultySet = new Set((data.faculty_directory || []).map(x => x.instructor));
+
+    sections.forEach(s => {
+        const tr = document.createElement('tr');
+        const courseName = `${s.subject} ${s.course_nbr}`;
+        const cadetCount = s.cadet_count !== undefined ? s.cadet_count : (s.cadets || 0);
+        const countStyle = s.is_sub10 ? 'color: #b45309; font-weight: 700;' : 'font-weight: 700;';
+
+        let instHtml = '';
+        if (s.instructors && s.instructors.length > 0) {
+            instHtml = s.instructors.map(inst => {
+                const displayName = window.maskFacultyNames ? 'Faculty Member' : inst;
+                if (knownFacultySet.has(inst)) {
+                    return `<span style="color:var(--primary); cursor:pointer; font-weight:600; text-decoration:underline dotted;" onclick="openFacultyModal('${inst.replace(/'/g, "\\'")}')" title="View instructor workload">${displayName}</span>`;
+                } else {
+                    return `<span style="color:var(--text-main); font-weight:500;">${displayName}</span>`;
+                }
+            }).join(', ');
+        } else {
+            instHtml = '<span style="color:#94a3b8; font-style:italic;">Unassigned / Staff</span>';
+        }
+
+        const badges = [];
+        if (s.is_sub10) badges.push('<span class="badge badge-sub10" title="Low enrollment section (≤ 10 cadets)">≤ 10 Cadets</span>');
+        if (s.is_capstone) badges.push('<span class="badge badge-capstone" title="Senior Capstone Design">Capstone</span>');
+        if (s.is_499) badges.push('<span class="badge" style="background:#e0f2fe; color:#0369a1; font-weight:700;" title="Independent Study (499)">499 Ind Study</span>');
+        if (s.credit_type === 'Half Credit' || s.section_weight === 0.5) badges.push('<span class="badge" style="background:#fef3c7; color:#b45309; font-weight:700;">½ Credit</span>');
+        if (s.credit_type === 'Quarter Credit' || s.section_weight === 0.25) badges.push('<span class="badge" style="background:#f3e8ff; color:#7e22ce; font-weight:700;">¼ Credit</span>');
+        const flagsHtml = badges.length > 0 ? badges.join(' ') : '<span style="color:#cbd5e1;">—</span>';
+
+        tr.innerHTML = `
+            <td><strong>${courseName}</strong></td>
+            <td style="font-size: 12.5px; max-width: 240px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${s.title || ''}">${s.title || '—'}</td>
+            <td><span class="badge badge-dept">${s.department || '—'}</span></td>
+            <td><span class="badge badge-status" style="font-weight:600;">${s.section}</span></td>
+            <td style="font-size: 12px; color: var(--text-muted);">${s.term || '—'}</td>
+            <td class="num" style="${countStyle}">${cadetCount}</td>
+            <td class="num">${s.credit_units !== undefined ? Number(s.credit_units).toFixed(1) : '—'}</td>
+            <td style="font-size: 12px;">${instHtml}</td>
+            <td>${flagsHtml}</td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+function sortSchoolCoursesTable(col) {
+    if (currentSchoolCoursesSort.col === col) {
+        currentSchoolCoursesSort.dir = currentSchoolCoursesSort.dir === 'asc' ? 'desc' : 'asc';
+    } else {
+        currentSchoolCoursesSort.col = col;
+        currentSchoolCoursesSort.dir = ['course', 'title', 'department', 'section', 'term'].includes(col) ? 'asc' : 'desc';
+    }
+    renderSchoolCoursesTable();
+}
+
+function filterSchoolCoursesTable() {
+    renderSchoolCoursesTable();
+}
+

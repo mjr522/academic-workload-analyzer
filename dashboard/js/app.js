@@ -535,7 +535,13 @@ function refreshAllViews() {
 
     if (currentActiveTab === 'tab-department') {
         const sel = document.getElementById('deptSelect');
-        if (sel && sel.value) renderDepartmentDetails(sel.value);
+        if (sel && sel.value) {
+            if (typeof renderDrilldown === 'function') {
+                renderDrilldown(sel.value);
+            } else {
+                renderDepartmentDetails(sel.value);
+            }
+        }
     } else if (currentActiveTab === 'tab-curriculum') {
         renderCurriculumView();
     } else if (currentActiveTab === 'tab-faculty') {
@@ -642,7 +648,13 @@ function switchTab(tabId) {
         renderExecutiveCharts(data, currentSchoolScope);
     } else if (tabId === 'tab-department' && data) {
         const sel = document.getElementById('deptSelect');
-        if (sel && sel.value) renderDepartmentDetails(sel.value);
+        if (sel && sel.value) {
+            if (typeof renderDrilldown === 'function') {
+                renderDrilldown(sel.value);
+            } else {
+                renderDepartmentDetails(sel.value);
+            }
+        }
     } else if (tabId === 'tab-curriculum') {
         renderCurriculumView();
     } else if (tabId === 'tab-faculty') {

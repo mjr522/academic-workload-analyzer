@@ -11,6 +11,8 @@ let majorsPieChartInstance = null;
 let sub10BarChartInstance = null;
 let courseLevelChartInstance = null;
 let deptSizeDistChartInstance = null;
+let schoolDeptChartInstance = null;
+let schoolSizeDistChartInstance = null;
 
 const SCHOOL_COLORS = {
     'SINE': '#2563eb', // Royal Blue
@@ -579,3 +581,136 @@ function renderDeptSizeDistChart(dist) {
         }
     });
 }
+
+function renderSchoolDeptChart(schoolDepts) {
+    if (typeof Chart === 'undefined') {
+        setTimeout(() => renderSchoolDeptChart(schoolDepts), 200);
+        return;
+    }
+    const canvas = document.getElementById('schoolDeptChart');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (schoolDeptChartInstance) schoolDeptChartInstance.destroy();
+
+    const depts = (schoolDepts || []).slice().sort((a, b) => (b.total_sch || 0) - (a.total_sch || 0));
+    const labels = depts.map(d => d.dept_code);
+    const schVals = depts.map(d => Math.round(d.total_sch || 0));
+    const secVals = depts.map(d => d.total_sections || 0);
+
+    schoolDeptChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: 'Student Credit Hours (SCH)',
+                    data: schVals,
+                    backgroundColor: '#2563eb',
+                    borderRadius: 4,
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Active Sections',
+                    data: secVals,
+                    backgroundColor: '#06b6d4',
+                    borderRadius: 4,
+                    yAxisID: 'y1'
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+                mode: 'index',
+                intersect: false
+            },
+            plugins: {
+                legend: {
+                    position: 'top',
+                    labels: { boxWidth: 12, font: { size: 11 } }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: (ctx) => {
+                            if (ctx.dataset.yAxisID === 'y') {
+                                return ` SCH: ${ctx.raw.toLocaleString()}`;
+                            } else {
+                                return ` Sections: ${ctx.raw}`;
+                            }
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    ticks: { font: { size: 11, weight: 'bold' } }
+                },
+                y: {
+                    type: 'linear',
+                    display: true,
+                    position: 'left',
+                    title: { display: true, text: 'Student Credit Hours (SCH)', font: { size: 11 } },
+                    grid: { color: 'rgba(0,0,0,0.05)' }
+                },
+                y1: {
+                    type: 'linear',
+                    display: true,
+                    position: 'right',
+                    title: { display: true, text: 'Active Sections', font: { size: 11 } },
+                    grid: { drawOnChartArea: false }
+                }
+            }
+        }
+    });
+}
+
+function renderSchoolSizeDistChart(dist) {
+    if (typeof Chart === 'undefined') {
+        setTimeout(() => renderSchoolSizeDistChart(dist), 200);
+        return;
+    }
+    const canvas = document.getElementById('schoolSizeDistChart');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (schoolSizeDistChartInstance) schoolSizeDistChartInstance.destroy();
+
+    const buckets = dist || {'<=10': 0, '11-15': 0, '16-20': 0, '21-25': 0, '26+': 0};
+    const labels = ['≤ 10 Cadets', '11–15 Cadets', '16–20 Cadets', '21–25 Cadets', '26+ Cadets'];
+    const dataVals = [buckets['<=10'] || 0, buckets['11-15'] || 0, buckets['16-20'] || 0, buckets['21-25'] || 0, buckets['26+'] || 0];
+    const bgColors = ['#d97706', '#2563eb', '#10b981', '#06b6d4', '#8b5cf6'];
+
+    schoolSizeDistChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Sections',
+                data: dataVals,
+                backgroundColor: bgColors,
+                borderRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: (ctx) => ` ${ctx.raw} sections`
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: { display: true, text: 'Number of Sections', font: { weight: 'bold' } },
+                    grid: { color: '#f1f5f9' },
+                    ticks: { precision: 0 }
+                }
+            }
+        }
+    });
+}
+

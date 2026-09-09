@@ -104,7 +104,7 @@
         <!-- Tab Navigation Bar -->
         <nav class="nav-tabs-bar">
             <button class="nav-tab-btn active" id="btn-tab-executive" onclick="switchTab('tab-executive')">📊 Executive Overview</button>
-            <button class="nav-tab-btn" id="btn-tab-department" onclick="switchTab('tab-department')">🏢 Department Drilldown</button>
+            <button class="nav-tab-btn" id="btn-tab-department" onclick="switchTab('tab-department')">🏢 Drilldown</button>
             <button class="nav-tab-btn" id="btn-tab-curriculum" onclick="switchTab('tab-curriculum')">📚 Curriculum & Capstones</button>
             <button class="nav-tab-btn" id="btn-tab-faculty" onclick="switchTab('tab-faculty')">👥 Faculty Directory</button>
             <button class="nav-tab-btn" id="btn-tab-admin" onclick="switchTab('tab-admin')">⚙️ Admin & Policy Configuration</button>
@@ -209,11 +209,13 @@
         <!-- ================================================================= -->
         <div id="tab-department" class="tab-pane" style="display: none;">
             <div class="dept-select-bar">
-                <label for="deptSelect">Select Academic Department:</label>
+                <label for="deptSelect">Select Unit / Department:</label>
                 <select id="deptSelect"></select>
                 <span id="deptSubjs" style="font-size: 12px; color: var(--text-muted); margin-left: 10px;"></span>
             </div>
 
+            <!-- Container for Department-level Drilldown -->
+            <div id="deptDrilldownContainer">
             <!-- Department Vitals Cards -->
             <div class="card">
                 <div class="card-header">
@@ -449,7 +451,172 @@
                     </table>
                 </div>
             </div>
-        </div>
+            </div> <!-- End deptDrilldownContainer -->
+
+            <!-- Container for School-level Drilldown -->
+            <div id="schoolDrilldownContainer" style="display: none;">
+                <!-- School Vitals Header & KPIs -->
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <h2 id="schoolTitle" style="color: var(--primary); font-size: 18px;">School Overview</h2>
+                            <div class="card-desc" id="schoolDesc">Comprehensive school-level academic footprint, cross-department comparison, and personnel directory</div>
+                        </div>
+                        <div style="font-size: 13px; color: var(--text-muted); font-weight: 600;" id="schoolDeanBadgeDetail"></div>
+                    </div>
+
+                    <div class="kpi-grid" style="margin-bottom: 16px;">
+                        <div class="kpi-card">
+                            <div class="kpi-title">Active Departments</div>
+                            <div class="kpi-value" id="schoolMetricDepts">-</div>
+                            <div class="kpi-sub">Academic departments</div>
+                        </div>
+                        <div class="kpi-card">
+                            <div class="kpi-title">Active Sections</div>
+                            <div class="kpi-value" id="schoolMetricSections">-</div>
+                            <div class="kpi-sub">Classrooms & labs</div>
+                        </div>
+                        <div class="kpi-card">
+                            <div class="kpi-title">Cadet Seats Enrolled</div>
+                            <div class="kpi-value" id="schoolMetricSeats">-</div>
+                            <div class="kpi-sub">Total student enrollments</div>
+                        </div>
+                        <div class="kpi-card">
+                            <div class="kpi-title">Student Credit Hours</div>
+                            <div class="kpi-value" id="schoolMetricSCH">-</div>
+                            <div class="kpi-sub">Total SCH produced</div>
+                        </div>
+                        <div class="kpi-card">
+                            <div class="kpi-title">Faculty & Billets</div>
+                            <div class="kpi-value" id="schoolMetricFaculty">-</div>
+                            <div class="kpi-sub">Teaching / Total Billets</div>
+                        </div>
+                        <div class="kpi-card">
+                            <div class="kpi-title">Sections ≤ 10 Cadets</div>
+                            <div class="kpi-value" id="schoolMetricSub10">-</div>
+                            <div class="kpi-sub">Small section rate</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- School Visualizations (2 columns) -->
+                <div class="charts-grid-2col" style="margin-bottom: 20px;">
+                    <div class="card chart-card">
+                        <div class="chart-header">
+                            <div>
+                                <div class="chart-title">Department Student Credit Hours & Sections</div>
+                                <div class="chart-desc">Relative instructional production across departments in this school</div>
+                            </div>
+                        </div>
+                        <div style="height: 300px; position: relative;">
+                            <canvas id="schoolDeptChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="card chart-card">
+                        <div class="chart-header">
+                            <div>
+                                <div class="chart-title">School Section Size Distribution</div>
+                                <div class="chart-desc">Section enrollment distribution across all departments in this school</div>
+                            </div>
+                        </div>
+                        <div style="height: 300px; position: relative;">
+                            <canvas id="schoolSizeDistChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Department Comparative Footprint Table -->
+                <div class="card" style="margin-bottom: 20px;">
+                    <div class="card-header">
+                        <div>
+                            <div class="card-title">Department Workload & Student Footprint</div>
+                            <div class="card-desc">Comparative breakdown of courses, sections, student credit hours, and faculty staffing by department</div>
+                        </div>
+                    </div>
+                    <div class="scroll-wrapper">
+                        <table id="schoolDeptsTable">
+                            <thead>
+                                <tr>
+                                    <th class="sortable" onclick="sortSchoolDeptsTable('dept_code')">Dept <span class="sort-icon" id="th-schooldepts-dept_code">↕</span></th>
+                                    <th class="sortable" onclick="sortSchoolDeptsTable('dept_name')">Department Name <span class="sort-icon" id="th-schooldepts-dept_name">↕</span></th>
+                                    <th class="num sortable" onclick="sortSchoolDeptsTable('total_courses')">Courses <span class="sort-icon" id="th-schooldepts-total_courses">↕</span></th>
+                                    <th class="num sortable" onclick="sortSchoolDeptsTable('total_sections')">Sections <span class="sort-icon" id="th-schooldepts-total_sections">↕</span></th>
+                                    <th class="num sortable" onclick="sortSchoolDeptsTable('total_cadet_seats')">Seats <span class="sort-icon" id="th-schooldepts-total_cadet_seats">↕</span></th>
+                                    <th class="num sortable" onclick="sortSchoolDeptsTable('total_sch')">SCH <span class="sort-icon" id="th-schooldepts-total_sch">↕</span></th>
+                                    <th class="num sortable" onclick="sortSchoolDeptsTable('teaching_faculty_count')">Faculty <span class="sort-icon" id="th-schooldepts-teaching_faculty_count">↕</span></th>
+                                    <th class="num sortable" onclick="sortSchoolDeptsTable('sections_per_inst_mean')">Secs / Fac <span class="sort-icon" id="th-schooldepts-sections_per_inst_mean">↕</span></th>
+                                    <th class="num sortable" onclick="sortSchoolDeptsTable('sub10_percentage')">≤ 10 Cadets <span class="sort-icon" id="th-schooldepts-sub10_percentage">↕</span></th>
+                                    <th style="text-align:center;">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="schoolDeptsTbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- School Faculty & Assigned Personnel Directory -->
+                <div class="card" style="margin-bottom: 20px;">
+                    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                        <div>
+                            <div class="card-title">School Faculty & Assigned Personnel</div>
+                            <div class="card-desc">All faculty, staff, and billets assigned across this school's departments</div>
+                        </div>
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <input type="text" id="schoolFacultySearch" placeholder="Filter instructors, dept, tier..." style="padding: 6px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 12px; width: 240px;" oninput="filterSchoolFacultyTable()">
+                        </div>
+                    </div>
+                    <div class="scroll-wrapper">
+                        <table id="schoolFacultyTable">
+                            <thead>
+                                <tr>
+                                    <th class="sortable" onclick="sortSchoolFacultyTable('instructor')">Instructor <span class="sort-icon" id="th-schoolfac-instructor">↕</span></th>
+                                    <th class="sortable" onclick="sortSchoolFacultyTable('primary_dept')">Dept <span class="sort-icon" id="th-schoolfac-primary_dept">↕</span></th>
+                                    <th>Billet Type</th>
+                                    <th>Occupancy</th>
+                                    <th class="sortable" onclick="sortSchoolFacultyTable('expected_tier')">Tier <span class="sort-icon" id="th-schoolfac-expected_tier">↕</span></th>
+                                    <th class="num sortable" onclick="sortSchoolFacultyTable('expected_sections')">Target Secs <span class="sort-icon" id="th-schoolfac-expected_sections">↕</span></th>
+                                    <th class="num sortable" onclick="sortSchoolFacultyTable('relief_sections')">Relief Secs <span class="sort-icon" id="th-schoolfac-relief_sections">↕</span></th>
+                                    <th class="num sortable" onclick="sortSchoolFacultyTable('weighted_sections')">Taught Secs <span class="sort-icon" id="th-schoolfac-weighted_sections">↕</span></th>
+                                    <th class="num sortable" onclick="sortSchoolFacultyTable('section_delta')">Net Delta <span class="sort-icon" id="th-schoolfac-section_delta">↕</span></th>
+                                    <th style="text-align:center;">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="schoolFacultyTbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- School Course Offerings & Section Audit -->
+                <div class="card">
+                    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                        <div>
+                            <div class="card-title">School Course Offerings & Section Audit</div>
+                            <div class="card-desc">All course sections scheduled across departments within this school</div>
+                        </div>
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <input type="text" id="schoolCourseSearch" placeholder="Filter courses, sections, instructors..." style="padding: 6px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 12px; width: 240px;" oninput="filterSchoolCoursesTable()">
+                        </div>
+                    </div>
+                    <div class="scroll-wrapper">
+                        <table id="schoolCoursesTable">
+                            <thead>
+                                <tr>
+                                    <th class="sortable" onclick="sortSchoolCoursesTable('course')">Course <span class="sort-icon" id="th-schoolcourses-course">↕</span></th>
+                                    <th class="sortable" onclick="sortSchoolCoursesTable('title')">Course Title <span class="sort-icon" id="th-schoolcourses-title">↕</span></th>
+                                    <th class="sortable" onclick="sortSchoolCoursesTable('department')">Dept <span class="sort-icon" id="th-schoolcourses-department">↕</span></th>
+                                    <th class="sortable" onclick="sortSchoolCoursesTable('section')">Section <span class="sort-icon" id="th-schoolcourses-section">↕</span></th>
+                                    <th class="sortable" onclick="sortSchoolCoursesTable('term')">Term <span class="sort-icon" id="th-schoolcourses-term">↕</span></th>
+                                    <th class="num sortable" onclick="sortSchoolCoursesTable('cadet_count')">Section Size <span class="sort-icon" id="th-schoolcourses-cadet_count">↕</span></th>
+                                    <th class="num sortable" onclick="sortSchoolCoursesTable('credit_units')">Credits <span class="sort-icon" id="th-schoolcourses-credit_units">↕</span></th>
+                                    <th>Instructors</th>
+                                    <th>Flags</th>
+                                </tr>
+                            </thead>
+                            <tbody id="schoolCoursesTbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
 
         <!-- ================================================================= -->
         <!-- TAB 3: CURRICULUM & CAPSTONES PANE -->

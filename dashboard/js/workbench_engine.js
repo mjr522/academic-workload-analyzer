@@ -515,6 +515,15 @@ function recomputeWorkbenchMetrics() {
         const secPerInst = schFac > 0 ? Math.round((schWeighted / schFac) * 100) / 100 : 0;
         const stuPerInst = schFac > 0 ? Math.round((schCadets / schFac) * 100) / 100 : 0;
 
+        const schDist = {'<=10': 0, '11-15': 0, '16-20': 0, '21-25': 0, '26+': 0};
+        schDepts.forEach(d => {
+            if (d.section_size_distribution) {
+                for (const k of Object.keys(schDist)) {
+                    schDist[k] += (d.section_size_distribution[k] || 0);
+                }
+            }
+        });
+
         return {
             ...sch,
             total_sections: schSecs,
@@ -522,6 +531,7 @@ function recomputeWorkbenchMetrics() {
             total_sch: schSCH,
             sub10_sections_count: schSub10,
             sub10_percentage: schSub10Pct,
+            section_size_distribution: schDist,
             faculty_count: schFac,
             teaching_faculty_count: schFac,
             all_billets_count: schAuth,
