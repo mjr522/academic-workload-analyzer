@@ -104,12 +104,12 @@ function renderWhatIfFacultyTable() {
         tr.innerHTML = `
             <td><strong>${displayName}</strong></td>
             <td>
-                <select onchange="updateFacultyDepartment('${f.instructor.replace(/'/g, "\\'")}', this.value)" style="padding:4px 8px; font-size:12px; border-radius:4px; border:1px solid var(--border);">
+                <select onchange="updateWhatIfFacultyDepartment('${f.instructor.replace(/'/g, "\\'")}', this.value)" style="padding:4px 8px; font-size:12px; border-radius:4px; border:1px solid var(--border);">
                     ${deptOpts}
                 </select>
             </td>
             <td>
-                <select onchange="updateFacultyTier('${f.instructor.replace(/'/g, "\\'")}', this.value)" style="padding:4px 8px; font-size:12px; border-radius:4px; border:1px solid var(--border); font-weight:600;">
+                <select onchange="updateWhatIfFacultyTier('${f.instructor.replace(/'/g, "\\'")}', this.value)" style="padding:4px 8px; font-size:12px; border-radius:4px; border:1px solid var(--border); font-weight:600;">
                     <option value="Line_Faculty" ${selectedTier === 'Line_Faculty' ? 'selected' : ''}>Line Faculty (3.0 secs)</option>
                     <option value="Course_Director" ${selectedTier === 'Course_Director' ? 'selected' : ''}>Course Director (2.0 secs)</option>
                     <option value="Dept_Head" ${selectedTier === 'Dept_Head' ? 'selected' : ''}>Dept Head / Lab Dir (1.0 sec)</option>
@@ -126,7 +126,7 @@ function renderWhatIfFacultyTable() {
     });
 }
 
-function updateFacultyDepartment(instName, newDept) {
+function updateWhatIfFacultyDepartment(instName, newDept) {
     if (!scenarioModifiedData) return;
     const f = scenarioModifiedData.faculty_directory.find(x => x.instructor === instName);
     if (f) {
@@ -135,7 +135,7 @@ function updateFacultyDepartment(instName, newDept) {
     }
 }
 
-function updateFacultyTier(instName, newTierKey) {
+function updateWhatIfFacultyTier(instName, newTierKey) {
     if (!scenarioModifiedData) return;
     const f = scenarioModifiedData.faculty_directory.find(x => x.instructor === instName);
     if (f) {

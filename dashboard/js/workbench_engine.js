@@ -385,6 +385,7 @@ function recomputeWorkbenchMetrics() {
         const dCourses = new Set(deptSecs.map(s => `${s.subject} ${s.course_nbr}`)).size;
         const dSub10 = deptSecs.filter(s => s.is_sub10).length;
         const dSub10Pct = deptSecs.length > 0 ? Math.round((dSub10 / deptSecs.length) * 1000) / 10 : 0;
+        const dAvgSize = dSections > 0 ? Math.round((dSeats / dSections) * 10) / 10 : 0;
 
         // Size dist
         const dist = {'<=10': 0, '11-15': 0, '16-20': 0, '21-25': 0, '26+': 0};
@@ -462,6 +463,7 @@ function recomputeWorkbenchMetrics() {
             total_courses: dCourses,
             total_cadet_seats: dSeats,
             total_sch: dSCH,
+            overall_avg_section_size: dAvgSize,
             sub10_sections_count: dSub10,
             sub10_percentage: dSub10Pct,
             section_size_distribution: dist,
@@ -514,6 +516,7 @@ function recomputeWorkbenchMetrics() {
         const schCadets = schDepts.reduce((acc, d) => acc + ((d.students_per_inst_mean || 0) * (d.teaching_faculty_count || 0)), 0);
         const secPerInst = schFac > 0 ? Math.round((schWeighted / schFac) * 100) / 100 : 0;
         const stuPerInst = schFac > 0 ? Math.round((schCadets / schFac) * 100) / 100 : 0;
+        const schAvgSize = schSecs > 0 ? Math.round((schSeats / schSecs) * 10) / 10 : 0;
 
         const schDist = {'<=10': 0, '11-15': 0, '16-20': 0, '21-25': 0, '26+': 0};
         schDepts.forEach(d => {
@@ -529,6 +532,7 @@ function recomputeWorkbenchMetrics() {
             total_sections: schSecs,
             total_cadet_seats: schSeats,
             total_sch: schSCH,
+            overall_avg_section_size: schAvgSize,
             sub10_sections_count: schSub10,
             sub10_percentage: schSub10Pct,
             section_size_distribution: schDist,

@@ -98,11 +98,17 @@ function renderDepartmentDetails(deptCode) {
     const dept = data.departments.find(d => d.dept_code === deptCode);
     if (!dept) return;
 
+    const deptAvgSize = dept.total_sections > 0
+        ? (dept.total_cadet_seats / dept.total_sections).toFixed(1)
+        : (dept.overall_avg_section_size !== undefined ? Number(dept.overall_avg_section_size).toFixed(1) : '0.0');
+
     // Vitals
     setTextSafe('deptTitle', `${dept.dept_code} — ${dept.dept_name}`);
     setTextSafe('deptSubjs', `Academic Programs: ${(dept.subjects_included || []).join(', ')}`);
     setTextSafe('deptMetricCourses', dept.total_courses || 0);
     setTextSafe('deptMetricSections', dept.total_sections || 0);
+    setTextSafe('deptMetricSectionsSub', `Classroom & labs (Avg: ${deptAvgSize})`);
+    setTextSafe('deptMetricAvgSize', deptAvgSize);
     setTextSafe('deptMetricSeats', (dept.total_cadet_seats || 0).toLocaleString());
     setTextSafe('deptMetricSCH', Math.round(dept.total_sch || 0).toLocaleString());
     setTextSafe('deptMetricMajors', (dept.declared_majors_total || 0).toLocaleString());
@@ -327,7 +333,7 @@ function renderDepartmentFacultyTable(deptCode) {
         // Dynamic tier options (includes custom tiers!)
         let tierOptions = '';
         Object.entries(allTiers).forEach(([tKey, tObj]) => {
-            const isSel = (f.tier_key === tKey || f.expected_tier === tObj.name);
+            const isSel = f.tier_key ? (f.tier_key === tKey) : (f.expected_tier === tObj.name);
             tierOptions += `<option value="${tKey}" ${isSel ? 'selected' : ''}>${tObj.name} (${tObj.expected_sections}s)</option>`;
         });
         const tierSelect = `
@@ -1098,9 +1104,15 @@ function renderSchoolDetails(schoolCode) {
     const sub10Count = school.sub10_sections_count !== undefined ? school.sub10_sections_count : schoolDepts.reduce((acc, d) => acc + (d.sub10_sections_count || 0), 0);
     const sub10Pct = school.sub10_percentage !== undefined ? school.sub10_percentage : (totSecs > 0 ? Math.round((sub10Count / totSecs) * 1000) / 10 : 0);
 
+    const schAvgSize = totSecs > 0
+        ? (totSeats / totSecs).toFixed(1)
+        : (school.overall_avg_section_size !== undefined ? Number(school.overall_avg_section_size).toFixed(1) : '0.0');
+
     // KPIs
     setTextSafe('schoolMetricDepts', totDepts);
     setTextSafe('schoolMetricSections', totSecs);
+    setTextSafe('schoolMetricSectionsSub', `Classrooms & labs (Avg: ${schAvgSize})`);
+    setTextSafe('schoolMetricAvgSize', schAvgSize);
     setTextSafe('schoolMetricSeats', Math.round(totSeats).toLocaleString());
     setTextSafe('schoolMetricSCH', Math.round(totSCH).toLocaleString());
     setTextSafe('schoolMetricFaculty', `${totFac} teaching / ${totBillets} billets`);
