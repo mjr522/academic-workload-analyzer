@@ -825,6 +825,7 @@ function exportDeptRosterXLSX(deptCode) {
         "Teaching_Sections_Weighted",
         "Cadet_Contact_Load",
         "Advisees_Count",
+        "Teaching_Pct",
         "Admin_Pct",
         "Research_Pct",
         "LabOps_Pct",
@@ -849,14 +850,14 @@ function exportDeptRosterXLSX(deptCode) {
             f.weighted_sections || 0,
             f.cadet_load_allocated || 0,
             f.advisees_count || 0,
-            f.teaching_pct || 0,
-            f.admin_pct || 0,
-            f.research_pct || 0,
-            f.labops_pct || 0,
-            se.admin || 0,
-            se.research || 0,
-            se.labops || 0,
-            se.gross_burden !== undefined ? se.gross_burden : f.weighted_sections,
+            f.teaching_pct !== undefined ? f.teaching_pct : 0,
+            f.admin_pct !== undefined ? f.admin_pct : 0,
+            f.research_pct !== undefined ? f.research_pct : 0,
+            f.labops_pct !== undefined ? f.labops_pct : 0,
+            se.admin !== undefined ? se.admin : 0,
+            se.research !== undefined ? se.research : 0,
+            se.labops !== undefined ? se.labops : 0,
+            se.gross_burden !== undefined ? se.gross_burden : (f.weighted_sections || 0),
             f.section_delta !== undefined ? f.section_delta : 0,
             (f.courses_taught || []).join('; ')
         ]);
@@ -892,7 +893,7 @@ function handleRosterFileUpload(file) {
             }
 
             // Find header indexes flexibly
-            const headers = rows[0].map(h => String(h).trim().toLowerCase().replace(/[^a-z0-9]/g, '_'));
+            const headers = rows[0].map(h => String(h).trim().toLowerCase().replace(/%/g, '_pct').replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, ''));
             
             const getColIdx = (aliases) => {
                 for (let a of aliases) {
@@ -906,12 +907,13 @@ function handleRosterFileUpload(file) {
             const idxBillet = getColIdx(['billet_type', 'billet', 'type', 'service', 'category']);
             const idxOccupancy = getColIdx(['occupancy_status', 'occupancy', 'status']);
             const idxTier = getColIdx(['role_tier', 'tier', 'expected_tier', 'role']);
-            const idxTeach = getColIdx(['teaching_fte_pct', 'teaching_pct', 'teach_pct', 'teaching']);
-            const idxAdmin = getColIdx(['admin_governance_pct', 'admin_pct', 'governance_pct', 'admin']);
-            const idxRes = getColIdx(['sponsored_research_pct', 'research_pct', 'research']);
-            const idxLab = getColIdx(['lab_ops_safety_pct', 'labops_pct', 'lab_pct', 'lab_ops']);
-            const idxAdv = getColIdx(['advisees_count', 'advisees', 'advisee_count']);
-            const idxNotes = getColIdx(['notes', 'note', 'comments']);
+            const idxExpSec = getColIdx(['expected_sections', 'expected_sec', 'expected_secs', 'target_sections', 'target_sec', 'target_secs', 'target', 'expected']);
+            const idxTeach = getColIdx(['teaching_pct', 'teaching_fte_pct', 'teach_pct', 'teaching_fte', 'teaching_percent', 'teaching']);
+            const idxAdmin = getColIdx(['admin_pct', 'admin_governance_pct', 'governance_pct', 'admin_governance', 'admin_percent', 'admin', 'governance']);
+            const idxRes = getColIdx(['research_pct', 'sponsored_research_pct', 'research_percent', 'research', 'sponsored_research']);
+            const idxLab = getColIdx(['labops_pct', 'lab_ops_pct', 'lab_ops_safety_pct', 'lab_safety_pct', 'lab_pct', 'labops', 'lab_ops', 'lab']);
+            const idxAdv = getColIdx(['advisees_count', 'advisees', 'advisee_count', 'advise_count']);
+            const idxNotes = getColIdx(['notes', 'note', 'comments', 'comment']);
 
             if (idxName === -1) {
                 alert("Could not locate an 'Instructor_Name' or 'Instructor' column in the uploaded file header.");
@@ -947,11 +949,21 @@ function handleRosterFileUpload(file) {
                 let tierKey = 'Line_Faculty';
                 if (idxTier !== -1 && row[idxTier]) {
                     const rawTier = String(row[idxTier]).trim();
+                    const lowTier = rawTier.toLowerCase();
                     // Match directly or fuzzy
                     if (policyTiers[rawTier]) {
                         tierKey = rawTier;
                     } else {
-                        if (lowTier.includes('lab') && lowTier.includes('staff')) tierKey = 'Lab_Staff';
+                        let matchedKey = null;
+                        for (const [k, t] of Object.entries(policyTiers)) {
+                            if (t.name && t.name.toLowerCase() === lowTier) {
+                                matchedKey = k;
+                                break;
+                            }
+                        }
+                        if (matchedKey) {
+                            tierKey = matchedKey;
+                        } else if (lowTier.includes('lab') && lowTier.includes('staff')) tierKey = 'Lab_Staff';
                         else if (lowTier.includes('dir') || lowTier.includes('course') || lowTier.includes('cd') || lowTier.includes('flyer') || lowTier.includes('306')) tierKey = 'Course_Director';
                         else if (lowTier.includes('head') || lowTier.includes('dh') || lowTier.includes('div') || lowTier.includes('chief')) tierKey = 'Dept_Head';
                         else if (lowTier.includes('adjunct') || lowTier.includes('chair')) tierKey = 'Adjunct_Chair';
@@ -962,11 +974,12 @@ function handleRosterFileUpload(file) {
 
                 const tierInfo = policyTiers[tierKey] || policyTiers['Line_Faculty'] || { expected_sections: 3.0, teaching_pct: 75, admin_pct: 10, research_pct: 10, labops_pct: 5 };
 
-                const teachPct = idxTeach !== -1 && row[idxTeach] !== '' ? Number(row[idxTeach]) : tierInfo.teaching_pct;
-                const adminPct = idxAdmin !== -1 && row[idxAdmin] !== '' ? Number(row[idxAdmin]) : tierInfo.admin_pct;
-                const resPct = idxRes !== -1 && row[idxRes] !== '' ? Number(row[idxRes]) : tierInfo.research_pct;
-                const labPct = idxLab !== -1 && row[idxLab] !== '' ? Number(row[idxLab]) : tierInfo.labops_pct;
-                const advCount = idxAdv !== -1 && row[idxAdv] !== '' ? Number(row[idxAdv]) : 0;
+                const teachPct = idxTeach !== -1 && row[idxTeach] !== '' && !isNaN(Number(row[idxTeach])) ? Number(row[idxTeach]) : tierInfo.teaching_pct;
+                const adminPct = idxAdmin !== -1 && row[idxAdmin] !== '' && !isNaN(Number(row[idxAdmin])) ? Number(row[idxAdmin]) : tierInfo.admin_pct;
+                const resPct = idxRes !== -1 && row[idxRes] !== '' && !isNaN(Number(row[idxRes])) ? Number(row[idxRes]) : tierInfo.research_pct;
+                const labPct = idxLab !== -1 && row[idxLab] !== '' && !isNaN(Number(row[idxLab])) ? Number(row[idxLab]) : tierInfo.labops_pct;
+                const advCount = idxAdv !== -1 && row[idxAdv] !== '' && !isNaN(Number(row[idxAdv])) ? Number(row[idxAdv]) : 0;
+                const expSec = idxExpSec !== -1 && row[idxExpSec] !== '' && !isNaN(Number(row[idxExpSec])) ? Number(row[idxExpSec]) : tierInfo.expected_sections;
                 const notes = idxNotes !== -1 ? String(row[idxNotes] || '') : '';
 
                 newRoster.push({
@@ -977,7 +990,7 @@ function handleRosterFileUpload(file) {
                     occupancy_status: occ,
                     tier_key: tierKey,
                     expected_tier: tierInfo.name || tierKey,
-                    expected_sections: tierInfo.expected_sections,
+                    expected_sections: expSec,
                     teaching_pct: teachPct,
                     admin_pct: adminPct,
                     research_pct: resPct,
