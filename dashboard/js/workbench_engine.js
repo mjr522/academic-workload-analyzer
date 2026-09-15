@@ -31,6 +31,7 @@ window.workbenchState = {
         excludeCapstones: true,
         exclude499s: true,
         sub10Threshold: 10,
+        standardSectionCap: 24,
         tiers: {
             'Line_Faculty': { name: 'Line Faculty', expected_sections: 3.0, teaching_pct: 75, admin_pct: 10, research_pct: 10, labops_pct: 5, is_custom: false },
             'Course_Director': { name: 'CDs / 306 FTG Flyers', expected_sections: 2.0, teaching_pct: 50, admin_pct: 35, research_pct: 10, labops_pct: 5, is_custom: false },
@@ -81,6 +82,7 @@ function initWorkbenchState(data) {
             window.workbenchState.policy.quarterCreditCourses = dp.quarter_credit_courses;
         }
         if (dp.sub10_threshold) window.workbenchState.policy.sub10Threshold = dp.sub10_threshold;
+        if (dp.standard_section_cap) window.workbenchState.policy.standardSectionCap = dp.standard_section_cap;
         if (dp.tiers) {
             window.workbenchState.policy.tiers = JSON.parse(JSON.stringify(dp.tiers));
         }
@@ -455,10 +457,58 @@ function recomputeWorkbenchMetrics() {
         const totLabSec = deptFac.reduce((acc, f) => acc + (f.section_equivalents ? f.section_equivalents.labops : 0), 0);
         const totGrossSec = dSections + totAdminSec + totResSec + totLabSec;
 
+        // 3-Way Instructional Capacity & Section Sizing Balance
+        const targetCap = Number(policy.standardSectionCap) || 24;
+        const targetSections = Math.round(deptFac.reduce((acc, f) => {
+            const exp = f.expected_sections !== undefined ? Number(f.expected_sections) : 0;
+            return acc + exp;
+        }, 0) * 10) / 10;
+        const actualSections = dSections;
+
+        // Right-Sized Standard Demand: group by unique course in deptSecs (respecting capstone/499 toggles)
+        const courseMap = {};
+        deptSecs.forEach(s => {
+            if (s.is_499 || String(s.course_nbr) === '499') return;
+            const cKey = `${s.subject || ''} ${s.course_nbr || ''}`.trim();
+            if (!cKey) return;
+            if (!courseMap[cKey]) {
+                courseMap[cKey] = {
+                    cadets: 0,
+                    weight: s.section_weight !== undefined ? s.section_weight : 1.0
+                };
+            }
+            const cCount = s.cadets !== undefined ? s.cadets : (s.cadet_count !== undefined ? s.cadet_count : 0);
+            courseMap[cKey].cadets += cCount;
+        });
+
+        let standardSections = 0;
+        Object.values(courseMap).forEach(c => {
+            if (c.cadets > 0 && c.weight > 0) {
+                const neededSecs = Math.ceil(c.cadets / targetCap);
+                standardSections += (neededSecs * c.weight);
+            }
+        });
+        standardSections = Math.round(standardSections * 10) / 10;
+        const compressionDelta = Math.round((standardSections - actualSections) * 10) / 10;
+        const staffingDelta = Math.round((targetSections - standardSections) * 10) / 10;
+
         return {
             ...dept,
             total_sections: dSections,
             total_courses: dCourses,
+            target_sections: targetSections,
+            actual_sections: actualSections,
+            standard_sections: standardSections,
+            compression_delta: compressionDelta,
+            staffing_delta: staffingDelta,
+            capacity_balance: {
+                target_sections: targetSections,
+                actual_sections: actualSections,
+                standard_sections: standardSections,
+                compression_delta: compressionDelta,
+                staffing_delta: staffingDelta,
+                standard_cap: targetCap
+            },
             total_cadet_seats: dSeats,
             total_sch: dSCH,
             overall_avg_section_size: dAvgSize,
@@ -525,9 +575,27 @@ function recomputeWorkbenchMetrics() {
             }
         });
 
+        const schTargetSecs = Math.round(schDepts.reduce((acc, d) => acc + (d.target_sections || 0), 0) * 10) / 10;
+        const schStandardSecs = Math.round(schDepts.reduce((acc, d) => acc + (d.standard_sections || 0), 0) * 10) / 10;
+        const schCompressionDelta = Math.round((schStandardSecs - schSecs) * 10) / 10;
+        const schStaffingDelta = Math.round((schTargetSecs - schStandardSecs) * 10) / 10;
+
         return {
             ...sch,
             total_sections: schSecs,
+            target_sections: schTargetSecs,
+            actual_sections: schSecs,
+            standard_sections: schStandardSecs,
+            compression_delta: schCompressionDelta,
+            staffing_delta: schStaffingDelta,
+            capacity_balance: {
+                target_sections: schTargetSecs,
+                actual_sections: schSecs,
+                standard_sections: schStandardSecs,
+                compression_delta: schCompressionDelta,
+                staffing_delta: schStaffingDelta,
+                standard_cap: Number(policy.standardSectionCap) || 24
+            },
             total_cadet_seats: schSeats,
             total_sch: schSCH,
             overall_avg_section_size: schAvgSize,
@@ -556,8 +624,26 @@ function recomputeWorkbenchMetrics() {
     const teachingFacultyTotal = consolidatedFaculty.filter(f => f.weighted_sections > 0).length;
     const allBilletsTotal = consolidatedFaculty.length;
 
+    const instTargetSecs = Math.round(computedDepartments.reduce((acc, d) => acc + (d.target_sections || 0), 0) * 10) / 10;
+    const instStandardSecs = Math.round(computedDepartments.reduce((acc, d) => acc + (d.standard_sections || 0), 0) * 10) / 10;
+    const instCompressionDelta = Math.round((instStandardSecs - instTotSecs) * 10) / 10;
+    const instStaffingDelta = Math.round((instTargetSecs - instStandardSecs) * 10) / 10;
+
     const instKPIs = {
         total_sections: instTotSecs,
+        target_sections: instTargetSecs,
+        actual_sections: instTotSecs,
+        standard_sections: instStandardSecs,
+        compression_delta: instCompressionDelta,
+        staffing_delta: instStaffingDelta,
+        capacity_balance: {
+            target_sections: instTargetSecs,
+            actual_sections: instTotSecs,
+            standard_sections: instStandardSecs,
+            compression_delta: instCompressionDelta,
+            staffing_delta: instStaffingDelta,
+            standard_cap: Number(policy.standardSectionCap) || 24
+        },
         total_cadet_seats: instTotSeats,
         total_sch: instTotSCH,
         overall_avg_section_size: instAvgSize,

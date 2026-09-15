@@ -181,6 +181,12 @@ function renderAdminCurriculumControls() {
     if (threshInput) {
         threshInput.value = policy.sub10Threshold || 10;
     }
+
+    // Standard Section Target Cap
+    const capInput = document.getElementById('adminStandardCapInput');
+    if (capInput) {
+        capInput.value = policy.standardSectionCap || 24;
+    }
 }
 
 function toggleSubjectInclusion(sub, isIncluded) {
@@ -392,6 +398,14 @@ function updateAdminSub10Threshold(val) {
     }
 }
 
+function updateAdminStandardCap(val) {
+    const num = parseInt(val, 10);
+    if (!isNaN(num) && num >= 10 && num <= 50) {
+        window.workbenchState.policy.standardSectionCap = num;
+        recomputeWorkbenchMetrics();
+    }
+}
+
 /**
  * 2. Dynamic Faculty Tier Manager
  */
@@ -563,6 +577,7 @@ function resetPolicyToDefaults() {
         excludeCapstones: true,
         exclude499s: true,
         sub10Threshold: 10,
+        standardSectionCap: 24,
         tiers: {
             'Line_Faculty': { name: 'Line Faculty', expected_sections: 3.0, teaching_pct: 75, admin_pct: 10, research_pct: 10, labops_pct: 5, is_custom: false },
             'Course_Director': { name: 'CDs / 306 FTG Flyers', expected_sections: 2.0, teaching_pct: 50, admin_pct: 35, research_pct: 10, labops_pct: 5, is_custom: false },

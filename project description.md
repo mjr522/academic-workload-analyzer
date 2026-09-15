@@ -77,6 +77,24 @@ To prevent conflation between personnel categorization and staffing vacancies:
 
 ---
 
+### 2.6 3-Way Instructional Capacity & Section Sizing Balance Model
+To resolve the analytical distortion where departments "mask" instructional deficits by carrying oversized sections (30–50 cadets) and appearing artificially under-loaded in raw section counts, the Workbench models a 3-way balance:
+* **Staffing Capacity ($S_{\text{capacity}}$)**: What authorized faculty *should* teach based on assigned Role Tiers:
+  $$S_{\text{capacity}} = \sum_{f \in \text{Faculty}(D)} \text{TargetSections}(f.\text{role})$$
+* **Actual Scheduled ($S_{\text{actual}}$)**: What is currently scheduled in the timetable (accounting for co-teaching and course duration weights):
+  $$S_{\text{actual}} = \sum_{s \in \text{Sections}(D)} \text{SectionWeight}(s)$$
+* **Right-Sized Standard Demand ($S_{\text{standard}}$)**: Number of sections required if cohort sizes are right-sized to the policy benchmark cap ($C = 24$, configurable):
+  $$S_{\text{standard}} = \sum_{c \in \text{Courses}(D)} \left\lceil \frac{\text{Cadets}(c)}{C} \right\rceil \times \text{CourseWeight}(c)$$
+  *(Synchronized with active Capstone and 499 toggle buttons to eliminate curricular distortion).*
+* **Classroom Compression Pressure ($\Delta_{\text{sizing}} = S_{\text{standard}} - S_{\text{actual}}$)**:
+  * $\Delta_{\text{sizing}} > 0$: Department absorbs burden via oversized classes.
+  * $\Delta_{\text{sizing}} < 0$: Potential for section consolidation.
+* **True Faculty Staffing Balance ($\Delta_{\text{staffing}} = S_{\text{capacity}} - S_{\text{standard}}$)**:
+  * $\Delta_{\text{staffing}} < 0$: Structural faculty deficit (authorizations cannot cover right-sized sections).
+  * $\Delta_{\text{staffing}} \ge 0$: Sufficient authorization capacity.
+
+---
+
 ## 3. Interactive Workbench Architecture (6 Modules)
 
 The client-side dashboard (`dashboard/index.html`) operates entirely in modern web browsers without backend server requirements:
@@ -94,10 +112,12 @@ The client-side dashboard (`dashboard/index.html`) operates entirely in modern w
 * **School Drilldown View**:
   * Activated when selecting an Academic School (e.g., `SINE`, `SIBS`, `HASS`).
   * Features the **Dean Badge**, School-wide KPI rollups, cross-department comparison tables, and section size distribution histograms.
+  * Comparative department table includes: Courses, Target Secs ($S_{\text{capacity}}$), Actual Secs ($S_{\text{actual}}$), Cap Demand ($S_{\text{standard}}$), and Sizing Pressure ($\Delta_{\text{sizing}}$).
   * Lists constituent departments in clean alphabetical order.
 * **Department Drilldown View**:
   * Activated when selecting an individual Academic Department.
   * Displays departmental KPI metrics, average section size, and student distribution.
+  * **⚖️ Instructional Capacity & Section Sizing Balance Card**: 3-metric visual comparison with Dean's analytical insight narrative and dynamic status pills.
   * **Live Faculty Roster Editor**: Allows real-time modification of Role Tiers, Billet Types (Mil/Civ), and Billet Occupancy (Occupied/Vacant) with immediate KPI recalculation.
   * **Interactive Course Section Audit**: Detailed breakdown of every section, instructor allocation, and enrollment count.
   * **Excel Starter Spreadsheet Generation**: Export customized roster templates directly for department heads.
@@ -120,6 +140,7 @@ The client-side dashboard (`dashboard/index.html`) operates entirely in modern w
 ### Tab 6: Admin & Policy Configuration
 * **Academic Subject Manager**: Enable or disable specific academic subjects and disciplines.
 * **Faculty Tier Calibrator**: Create, update, or remove role tiers, adjusting section targets and effort breakdowns.
+* **Standard Section Target Cap**: Configure benchmark classroom capacity (default: 24, range 15–35) governing right-sized demand modeling.
 * **Partial-Credit Course Lists**: Configure 1/2-credit and 1/4-credit course patterns (e.g., `LDRSHP`, `SPACE`).
 * **Capstone Catalog**: Define capstone course rules.
 * **Policy Import / Export**: Export full policy configurations to JSON and restore across sessions.

@@ -384,6 +384,77 @@
                 </div>
             </div>
 
+            <!-- 3-Way Instructional Capacity & Section Sizing Balance Card -->
+            <div class="card" id="deptCapacityBalanceCard" style="margin-bottom: 20px; border-left: 4px solid var(--primary);">
+                <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                    <div>
+                        <div class="card-title" style="display: flex; align-items: center; gap: 8px;">
+                            <span>⚖️ Instructional Capacity &amp; Section Sizing Balance</span>
+                            <span id="deptCapBalanceBadge" class="badge" style="background:#e0f2fe; color:#0369a1; font-size:11px; font-weight:700;">Cap 24 Standard</span>
+                        </div>
+                        <div class="card-desc">
+                            Three-way analytical reconciliation: Faculty Staffing Capacity (policy targets) vs. Actual Timetable Scheduled vs. Right-Sized Demand at policy cap.
+                        </div>
+                    </div>
+                    <div id="deptCapStatusPill"></div>
+                </div>
+
+                <!-- 3-Way Comparative Metrics Grid -->
+                <div class="grid-3" style="margin-bottom: 16px;">
+                    <!-- Metric 1: Staffing Capacity -->
+                    <div style="background:#f8fafc; border:1px solid var(--border); border-radius:8px; padding:14px; text-align:center;">
+                        <div style="font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase; margin-bottom:4px;">
+                            1. Staffing Capacity (Target)
+                        </div>
+                        <div id="deptCapTargetSecs" style="font-size:24px; font-weight:800; color:var(--primary); line-height:1.2;">-</div>
+                        <div style="font-size:11.5px; color:var(--text-muted); margin-top:4px;">
+                            What faculty <em>should</em> teach (policy tiers)
+                        </div>
+                    </div>
+
+                    <!-- Metric 2: Actual Scheduled -->
+                    <div style="background:#f8fafc; border:1px solid var(--border); border-radius:8px; padding:14px; text-align:center;">
+                        <div style="font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase; margin-bottom:4px;">
+                            2. Actual Scheduled
+                        </div>
+                        <div id="deptCapActualSecs" style="font-size:24px; font-weight:800; color:#0284c7; line-height:1.2;">-</div>
+                        <div style="font-size:11.5px; color:var(--text-muted); margin-top:4px;">
+                            What is currently scheduled in timetable
+                        </div>
+                    </div>
+
+                    <!-- Metric 3: Right-Sized Demand -->
+                    <div style="background:#f8fafc; border:1px solid var(--border); border-radius:8px; padding:14px; text-align:center;">
+                        <div style="font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase; margin-bottom:4px;">
+                            3. Right-Sized Demand (<span id="deptCapLabelCap">Cap 24</span>)
+                        </div>
+                        <div id="deptCapStandardSecs" style="font-size:24px; font-weight:800; color:#7c3aed; line-height:1.2;">-</div>
+                        <div style="font-size:11.5px; color:var(--text-muted); margin-top:4px;">
+                            Sections needed if capped at standard size
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dean's Analytical Insight Narrative Box -->
+                <div id="deptCapNarrativeBox" style="background:#fff; border:1px solid var(--border); border-radius:8px; padding:14px 16px; line-height:1.5;">
+                    <div style="display:flex; align-items:flex-start; gap:12px;">
+                        <div id="deptCapNarrativeIcon" style="font-size:22px; line-height:1;">💡</div>
+                        <div style="flex:1;">
+                            <div style="font-size:12.5px; font-weight:700; color:var(--text-main); margin-bottom:4px;" id="deptCapNarrativeHeadline">
+                                Dean's Capacity &amp; Resourcing Analysis
+                            </div>
+                            <div style="font-size:12px; color:var(--text-muted);" id="deptCapNarrativeText">
+                                Loading capacity balance analysis...
+                            </div>
+                            <div style="display:flex; gap:16px; margin-top:8px; font-size:11.5px; flex-wrap:wrap;">
+                                <div id="deptCapCompressionBadge"></div>
+                                <div id="deptCapStaffingBadge"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Department Faculty Table -->
             <div class="card">
                 <div class="card-header">
@@ -550,7 +621,10 @@
                                     <th class="sortable" onclick="sortSchoolDeptsTable('dept_code')">Dept <span class="sort-icon" id="th-schooldepts-dept_code">↕</span></th>
                                     <th class="sortable" onclick="sortSchoolDeptsTable('dept_name')">Department Name <span class="sort-icon" id="th-schooldepts-dept_name">↕</span></th>
                                     <th class="num sortable" onclick="sortSchoolDeptsTable('total_courses')">Courses <span class="sort-icon" id="th-schooldepts-total_courses">↕</span></th>
-                                    <th class="num sortable" onclick="sortSchoolDeptsTable('total_sections')">Sections <span class="sort-icon" id="th-schooldepts-total_sections">↕</span></th>
+                                    <th class="num sortable" onclick="sortSchoolDeptsTable('target_sections')" title="Staffing Capacity: Total instructional sections expected based on faculty role tiers">Target Secs <span class="sort-icon" id="th-schooldepts-target_sections">↕</span></th>
+                                    <th class="num sortable" onclick="sortSchoolDeptsTable('actual_sections')" title="Actual Scheduled: Total weighted sections currently taught">Actual Secs <span class="sort-icon" id="th-schooldepts-actual_sections">↕</span></th>
+                                    <th class="num sortable" onclick="sortSchoolDeptsTable('standard_sections')" title="Right-Sized Demand: Sections required if capped at standard policy size"><span id="th-schooldepts-cap-label">Cap 24 Demand</span> <span class="sort-icon" id="th-schooldepts-standard_sections">↕</span></th>
+                                    <th class="num sortable" onclick="sortSchoolDeptsTable('compression_delta')" title="Classroom Compression Pressure: Standard Demand minus Actual Scheduled (+ = oversized sections)">Sizing Pressure <span class="sort-icon" id="th-schooldepts-compression_delta">↕</span></th>
                                     <th class="num sortable" onclick="sortSchoolDeptsTable('total_cadet_seats')">Seats <span class="sort-icon" id="th-schooldepts-total_cadet_seats">↕</span></th>
                                     <th class="num sortable" onclick="sortSchoolDeptsTable('total_sch')">SCH <span class="sort-icon" id="th-schooldepts-total_sch">↕</span></th>
                                     <th class="num sortable" onclick="sortSchoolDeptsTable('teaching_faculty_count')">Faculty <span class="sort-icon" id="th-schooldepts-teaching_faculty_count">↕</span></th>
@@ -893,6 +967,18 @@
                         <div style="display:flex; align-items:center; gap:6px;">
                             <span>&le;</span>
                             <input type="number" id="adminSub10ThreshInput" min="1" max="50" style="width:60px; padding:6px; font-size:13px; font-weight:700; text-align:right; border:1px solid var(--border); border-radius:6px;" onchange="updateAdminSub10Threshold(this.value)">
+                            <span style="font-size:12px; color:var(--text-muted);">cadets</span>
+                        </div>
+                    </div>
+
+                    <!-- Standard Section Target Cap -->
+                    <div style="display:flex; justify-content:space-between; align-items:center; background:#f8fafc; padding:10px 14px; border-radius:6px; border:1px solid var(--border);">
+                        <div>
+                            <div style="font-weight:700; font-size:13px; color:var(--text-main);">Standard Section Target Cap</div>
+                            <div style="font-size:11.5px; color:var(--text-muted);">Benchmark classroom capacity (default: 24 cadets). Used to compute Right-Sized Demand and Classroom Compression Pressure.</div>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:6px;">
+                            <input type="number" id="adminStandardCapInput" min="10" max="50" style="width:60px; padding:6px; font-size:13px; font-weight:700; text-align:right; border:1px solid var(--border); border-radius:6px;" onchange="updateAdminStandardCap(this.value)">
                             <span style="font-size:12px; color:var(--text-muted);">cadets</span>
                         </div>
                     </div>

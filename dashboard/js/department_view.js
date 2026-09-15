@@ -187,6 +187,13 @@ function renderDepartmentDetails(deptCode) {
     setTextSafe('deptSecEquivLabOps', `+${labSec} secs`);
     setTextSafe('deptGrossBurden', `${grossSec} gross secs`);
 
+    // 3-Way Instructional Capacity & Section Sizing Balance
+    try {
+        renderDepartmentCapacityBalance(dept);
+    } catch (e) {
+        console.warn("Capacity balance rendering error:", e);
+    }
+
     // Render Charts
     try {
         renderPipelineChart(dept.class_pipeline || {});
@@ -211,6 +218,121 @@ function renderDepartmentDetails(deptCode) {
         renderDepartmentCoursesTable(dept.dept_code);
     } catch (e) {
         console.warn("Department courses table error:", e);
+    }
+}
+
+/**
+ * Render 3-Way Capacity & Section Sizing Balance Card & Dean's Narrative
+ */
+function renderDepartmentCapacityBalance(dept) {
+    if (!dept) return;
+
+    const capBal = dept.capacity_balance || {};
+    const targetCap = capBal.standard_cap || (window.workbenchState?.policy?.standardSectionCap) || 24;
+    const targetSecs = (capBal.target_sections !== undefined ? Number(capBal.target_sections) : Number(dept.target_sections || 0));
+    const actualSecs = (capBal.actual_sections !== undefined ? Number(capBal.actual_sections) : Number(dept.total_sections || 0));
+    const standardSecs = (capBal.standard_sections !== undefined ? Number(capBal.standard_sections) : Number(dept.standard_sections || 0));
+    const compressionDelta = (capBal.compression_delta !== undefined ? Number(capBal.compression_delta) : Math.round((standardSecs - actualSecs) * 10) / 10);
+    const staffingDelta = (capBal.staffing_delta !== undefined ? Number(capBal.staffing_delta) : Math.round((targetSecs - standardSecs) * 10) / 10);
+
+    // Update Header Badge and Box Labels
+    const badge = document.getElementById('deptCapBalanceBadge');
+    if (badge) badge.textContent = `Cap ${targetCap} Standard`;
+
+    const labelCap = document.getElementById('deptCapLabelCap');
+    if (labelCap) labelCap.textContent = `Cap ${targetCap}`;
+
+    setTextSafe('deptCapTargetSecs', `${targetSecs.toFixed(1)} secs`);
+    setTextSafe('deptCapActualSecs', `${actualSecs.toFixed(1)} secs`);
+    setTextSafe('deptCapStandardSecs', `${standardSecs.toFixed(1)} secs`);
+
+    // Dynamic Status Pill
+    const pill = document.getElementById('deptCapStatusPill');
+    if (pill) {
+        if (staffingDelta < -1.0) {
+            pill.className = 'badge';
+            pill.style.background = '#fee2e2';
+            pill.style.color = '#b91c1c';
+            pill.style.border = '1px solid #fca5a5';
+            pill.style.fontSize = '12px';
+            pill.style.padding = '6px 12px';
+            pill.innerHTML = `🚨 <strong>Structural Faculty Deficit:</strong> ${staffingDelta.toFixed(1)} secs`;
+        } else if (compressionDelta > 2.0) {
+            pill.className = 'badge';
+            pill.style.background = '#fffbeb';
+            pill.style.color = '#b45309';
+            pill.style.border = '1px solid #fde68a';
+            pill.style.fontSize = '12px';
+            pill.style.padding = '6px 12px';
+            pill.innerHTML = `⚠️ <strong>High Classroom Compression:</strong> +${compressionDelta.toFixed(1)} secs`;
+        } else if (compressionDelta < -2.0) {
+            pill.className = 'badge';
+            pill.style.background = '#e0f2fe';
+            pill.style.color = '#0369a1';
+            pill.style.border = '1px solid #bae6fd';
+            pill.style.fontSize = '12px';
+            pill.style.padding = '6px 12px';
+            pill.innerHTML = `ℹ️ <strong>Section Consolidation Potential:</strong> ${compressionDelta.toFixed(1)} secs`;
+        } else {
+            pill.className = 'badge';
+            pill.style.background = '#dcfce7';
+            pill.style.color = '#15803d';
+            pill.style.border = '1px solid #bbf7d0';
+            pill.style.fontSize = '12px';
+            pill.style.padding = '6px 12px';
+            pill.innerHTML = `✅ <strong>Balanced Capacity &amp; Sizing</strong>`;
+        }
+    }
+
+    // Dynamic Dean's Insight Narrative
+    const iconEl = document.getElementById('deptCapNarrativeIcon');
+    const headlineEl = document.getElementById('deptCapNarrativeHeadline');
+    const textEl = document.getElementById('deptCapNarrativeText');
+    const compBadge = document.getElementById('deptCapCompressionBadge');
+    const staffBadge = document.getElementById('deptCapStaffingBadge');
+
+    let icon = '💡';
+    let headline = "Dean's Capacity &amp; Resourcing Analysis";
+    let narratives = [];
+
+    // Narrative A: Classroom Compression
+    if (compressionDelta > 2.0) {
+        icon = '⚠️';
+        headline = "Classroom Compression Warning: Timetable Masks Resourcing Strain";
+        narratives.push(`<strong>Classroom Sizing:</strong> The department absorbs <strong>+${compressionDelta.toFixed(1)} sections</strong> via oversized sections. Right-sizing curriculum to policy benchmark (&le; ${targetCap} cadets/section) requires <strong>${standardSecs.toFixed(1)} sections</strong> (currently scheduling ${actualSecs.toFixed(1)}).`);
+    } else if (compressionDelta < -2.0) {
+        icon = 'ℹ️';
+        headline = "Classroom Consolidation Opportunity: Small Section Footprint";
+        narratives.push(`<strong>Classroom Sizing:</strong> Current sections average well below policy cap (<strong>${compressionDelta.toFixed(1)} sections</strong> vs. right-sized benchmark). Leadership can explore combining boutique sections without exceeding the ${targetCap}-cadet ceiling.`);
+    } else {
+        narratives.push(`<strong>Classroom Sizing:</strong> Course sections are well-calibrated to institutional policy standards (<strong>${actualSecs.toFixed(1)} actual</strong> vs. <strong>${standardSecs.toFixed(1)} right-sized demand</strong>, delta: ${compressionDelta >= 0 ? '+' : ''}${compressionDelta.toFixed(1)} secs).`);
+    }
+
+    // Narrative B: Staffing Balance
+    if (staffingDelta < -1.0) {
+        if (icon !== '🚨') icon = '🚨';
+        headline = "Structural Faculty Deficit: Authorizations Cannot Support Right-Sized Curriculum";
+        narratives.push(`<strong>Staffing Balance:</strong> Department authorized staffing capacity (<strong>${targetSecs.toFixed(1)} secs</strong>) is structurally deficient by <strong>${Math.abs(staffingDelta).toFixed(1)} sections</strong> compared to right-sized demand (<strong>${standardSecs.toFixed(1)} secs</strong>). The department relies on class compression or faculty over-teaching to deliver its mission.`);
+    } else if (staffingDelta > 2.0) {
+        narratives.push(`<strong>Staffing Balance:</strong> Authorized faculty capacity (<strong>${targetSecs.toFixed(1)} secs</strong>) comfortably covers right-sized demand (<strong>${standardSecs.toFixed(1)} secs</strong>) with a reserve capacity of <strong>+${staffingDelta.toFixed(1)} sections</strong>.`);
+    } else {
+        narratives.push(`<strong>Staffing Balance:</strong> Faculty staffing capacity (<strong>${targetSecs.toFixed(1)} secs</strong>) closely matches right-sized curricular demand (<strong>${standardSecs.toFixed(1)} secs</strong>, delta: ${staffingDelta >= 0 ? '+' : ''}${staffingDelta.toFixed(1)} secs).`);
+    }
+
+    if (iconEl) iconEl.innerHTML = icon;
+    if (headlineEl) headlineEl.innerHTML = headline;
+    if (textEl) textEl.innerHTML = narratives.map(n => `<div style="margin-bottom:6px;">${n}</div>`).join('');
+
+    if (compBadge) {
+        const compColor = compressionDelta > 2 ? '#b45309' : (compressionDelta < -2 ? '#0369a1' : '#15803d');
+        const compBg = compressionDelta > 2 ? '#fffbeb' : (compressionDelta < -2 ? '#eff6ff' : '#f0fdf4');
+        compBadge.innerHTML = `<span class="badge" style="background:${compBg}; color:${compColor}; border:1px solid currentColor;">Classroom Compression: <strong>${compressionDelta >= 0 ? '+' : ''}${compressionDelta.toFixed(1)} secs</strong></span>`;
+    }
+
+    if (staffBadge) {
+        const staffColor = staffingDelta < -1 ? '#b91c1c' : (staffingDelta > 2 ? '#15803d' : '#475569');
+        const staffBg = staffingDelta < -1 ? '#fef2f2' : (staffingDelta > 2 ? '#f0fdf4' : '#f8fafc');
+        staffBadge.innerHTML = `<span class="badge" style="background:${staffBg}; color:${staffColor}; border:1px solid currentColor;">Staffing Balance: <strong>${staffingDelta >= 0 ? '+' : ''}${staffingDelta.toFixed(1)} secs</strong></span>`;
     }
 }
 
@@ -1156,8 +1278,15 @@ function renderSchoolDeptsTable(schoolDepts) {
     const data = (typeof getActiveWorkloadData === 'function') ? getActiveWorkloadData() : window.currentWorkloadData;
     const depts = schoolDepts || (data ? (data.departments || []).filter(d => (d.school_code || 'OTHER') === currentSchoolDrilldownCode) : []);
 
+    // Update active cap label in header
+    const capLabel = document.getElementById('th-schooldepts-cap-label');
+    const currentCap = (window.workbenchState?.policy?.standardSectionCap) || 24;
+    if (capLabel) {
+        capLabel.textContent = `Cap ${currentCap} Demand`;
+    }
+
     // Update sort icons
-    const cols = ['dept_code', 'dept_name', 'total_courses', 'total_sections', 'total_cadet_seats', 'total_sch', 'teaching_faculty_count', 'sections_per_inst_mean', 'sub10_percentage'];
+    const cols = ['dept_code', 'dept_name', 'total_courses', 'target_sections', 'actual_sections', 'standard_sections', 'compression_delta', 'total_cadet_seats', 'total_sch', 'teaching_faculty_count', 'sections_per_inst_mean', 'sub10_percentage'];
     cols.forEach(c => {
         const icon = document.getElementById(`th-schooldepts-${c}`);
         if (icon) {
@@ -1178,6 +1307,9 @@ function renderSchoolDeptsTable(schoolDepts) {
         if (c === 'teaching_faculty_count') {
             valA = a.teaching_faculty_count || a.faculty_count || 0;
             valB = b.teaching_faculty_count || b.faculty_count || 0;
+        } else if (c === 'actual_sections') {
+            valA = a.actual_sections !== undefined ? a.actual_sections : (a.total_sections || 0);
+            valB = b.actual_sections !== undefined ? b.actual_sections : (b.total_sections || 0);
         }
         if (typeof valA === 'number' || typeof valB === 'number') {
             valA = Number(valA) || 0;
@@ -1196,11 +1328,27 @@ function renderSchoolDeptsTable(schoolDepts) {
         const meanSecs = d.sections_per_inst_mean !== undefined ? Number(d.sections_per_inst_mean).toFixed(1) : '—';
         const sub10Display = `${d.sub10_sections_count || 0} (${d.sub10_percentage || 0}%)`;
 
+        const targetSec = d.target_sections !== undefined ? Number(d.target_sections).toFixed(1) : (d.capacity_balance?.target_sections !== undefined ? Number(d.capacity_balance.target_sections).toFixed(1) : '—');
+        const actualSec = d.actual_sections !== undefined ? Number(d.actual_sections).toFixed(1) : (d.total_sections !== undefined ? Number(d.total_sections).toFixed(1) : '0.0');
+        const standardSec = d.standard_sections !== undefined ? Number(d.standard_sections).toFixed(1) : (d.capacity_balance?.standard_sections !== undefined ? Number(d.capacity_balance.standard_sections).toFixed(1) : '—');
+        const compDelta = d.compression_delta !== undefined ? Number(d.compression_delta) : (d.capacity_balance?.compression_delta !== undefined ? Number(d.capacity_balance.compression_delta) : 0);
+
+        let compStyle = 'color: #15803d; font-weight: 600;';
+        let compSign = compDelta > 0 ? `+${compDelta.toFixed(1)}` : compDelta.toFixed(1);
+        if (compDelta > 2.0) {
+            compStyle = 'color: #b45309; font-weight: 800; background: #fffbeb; border: 1px solid #fde68a; padding: 2px 7px; border-radius: 4px; display: inline-block;';
+        } else if (compDelta < -2.0) {
+            compStyle = 'color: #0369a1; font-weight: 700; background: #eff6ff; border: 1px solid #bfdbfe; padding: 2px 7px; border-radius: 4px; display: inline-block;';
+        }
+
         tr.innerHTML = `
             <td><strong style="color:var(--primary);">${d.dept_code}</strong></td>
             <td style="font-weight:600;">${d.dept_name}</td>
             <td class="num">${d.total_courses || 0}</td>
-            <td class="num"><strong>${d.total_sections || 0}</strong></td>
+            <td class="num"><strong style="color:var(--primary);">${targetSec}</strong></td>
+            <td class="num"><strong>${actualSec}</strong></td>
+            <td class="num"><strong style="color:#7c3aed;">${standardSec}</strong></td>
+            <td class="num"><span style="${compStyle}">${compSign}</span></td>
             <td class="num">${(d.total_cadet_seats || 0).toLocaleString()}</td>
             <td class="num"><strong style="color:var(--primary);">${Math.round(d.total_sch || 0).toLocaleString()}</strong></td>
             <td class="num">${facTeaching} / ${facAuth}</td>
