@@ -73,9 +73,8 @@ class ExportEngine:
             'exclude_499s': True,
             'tiers': {
                 'Line_Faculty': {'name': 'Line Faculty', 'expected_sections': 3.0, 'teaching_pct': 75.0, 'admin_pct': 10.0, 'research_pct': 10.0, 'labops_pct': 5.0},
-                'Course_Director': {'name': 'Course Director', 'expected_sections': 2.0, 'teaching_pct': 50.0, 'admin_pct': 35.0, 'research_pct': 10.0, 'labops_pct': 5.0},
+                'Course_Director': {'name': 'CDs / 306 FTG Flyers', 'expected_sections': 2.0, 'teaching_pct': 50.0, 'admin_pct': 35.0, 'research_pct': 10.0, 'labops_pct': 5.0},
                 'Dept_Head': {'name': 'Dept Head / Lab Dir', 'expected_sections': 1.0, 'teaching_pct': 25.0, 'admin_pct': 60.0, 'research_pct': 10.0, 'labops_pct': 5.0},
-                'Division_Chief': {'name': 'Division Chief', 'expected_sections': 1.0, 'teaching_pct': 25.0, 'admin_pct': 60.0, 'research_pct': 10.0, 'labops_pct': 5.0},
                 'Adjunct_Chair': {'name': 'Adjunct / Chair', 'expected_sections': 0.5, 'teaching_pct': 15.0, 'admin_pct': 70.0, 'research_pct': 10.0, 'labops_pct': 5.0},
                 'MOA_Courtesy': {'name': 'MOA / Courtesy', 'expected_sections': 0.0, 'teaching_pct': 0.0, 'admin_pct': 80.0, 'research_pct': 15.0, 'labops_pct': 5.0},
                 'Lab_Staff': {'name': 'Lab Staff', 'expected_sections': 0.0, 'teaching_pct': 0.0, 'admin_pct': 0.0, 'research_pct': 0.0, 'labops_pct': 100.0}

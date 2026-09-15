@@ -228,10 +228,9 @@ CROSS_LISTED_COURSES: List[Set[Tuple[str, str]]] = [
 # =========================================================================
 TIER_EXPECTATIONS: Dict[str, float] = {
     'line_faculty': 3.0,      # Core instructional faculty
-    'course_director': 2.0,   # Core Course Directors & Discipline Leads
+    'course_director': 2.0,   # CDs / 306 FTG Flyers & Discipline Leads
     'lab_director': 2.0,      # High-hazard / Major Facility Lab Directors
     'dept_head': 1.0,         # Department Heads / Deans (Administrative dominant)
-    'division_chief': 1.0,    # Division Chiefs
     'research_exempt': 1.0,   # Research Exempt / Sabbatical
     'adjunct_chair': 0.5,     # Adjunct faculty & Endowed Chairs (part-time or fractional)
     'moa_courtesy': 0.0,      # MOA / Courtesy visitors, lab techs, GS lab staff (surplus capacity)

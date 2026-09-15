@@ -95,7 +95,7 @@ function renderWhatIfFacultyTable() {
         const tStr = (f.expected_tier || '').toLowerCase();
         let selectedTier = 'Line_Faculty';
         if (tStr.includes('lab') && tStr.includes('staff')) selectedTier = 'Lab_Staff';
-        else if (tStr.includes('course') || tStr.includes('dir')) selectedTier = 'Course_Director';
+        else if (tStr.includes('course') || tStr.includes('dir') || tStr.includes('cd') || tStr.includes('flyer') || tStr.includes('306')) selectedTier = 'Course_Director';
         else if (tStr.includes('head') || tStr.includes('dh')) selectedTier = 'Dept_Head';
         else if (tStr.includes('adjunct') || tStr.includes('chair')) selectedTier = 'Adjunct_Chair';
         else if (tStr.includes('moa') || tStr.includes('cour')) selectedTier = 'MOA_Courtesy';
@@ -111,7 +111,7 @@ function renderWhatIfFacultyTable() {
             <td>
                 <select onchange="updateWhatIfFacultyTier('${f.instructor.replace(/'/g, "\\'")}', this.value)" style="padding:4px 8px; font-size:12px; border-radius:4px; border:1px solid var(--border); font-weight:600;">
                     <option value="Line_Faculty" ${selectedTier === 'Line_Faculty' ? 'selected' : ''}>Line Faculty (3.0 secs)</option>
-                    <option value="Course_Director" ${selectedTier === 'Course_Director' ? 'selected' : ''}>Course Director (2.0 secs)</option>
+                    <option value="Course_Director" ${selectedTier === 'Course_Director' ? 'selected' : ''}>CDs / 306 FTG Flyers (2.0 secs)</option>
                     <option value="Dept_Head" ${selectedTier === 'Dept_Head' ? 'selected' : ''}>Dept Head / Lab Dir (1.0 sec)</option>
                     <option value="Adjunct_Chair" ${selectedTier === 'Adjunct_Chair' ? 'selected' : ''}>Adjunct / Chair (0.5 secs)</option>
                     <option value="MOA_Courtesy" ${selectedTier === 'MOA_Courtesy' ? 'selected' : ''}>MOA / Courtesy (0.0 secs)</option>

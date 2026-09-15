@@ -281,7 +281,7 @@ class RosterGenerator:
 
             dv_tier = DataValidation(
                 type="list",
-                formula1='"Line_Faculty,Course_Director,Department_Head,Division_Chief,Lab_Director,Research_Exempt,Adjunct_Chair,MOA_Courtesy"',
+                formula1='"Line_Faculty,Course_Director,Department_Head,Lab_Director,Research_Exempt,Adjunct_Chair,MOA_Courtesy,Lab_Staff"',
                 allow_blank=False,
                 showErrorMessage=True,
                 errorTitle="Invalid Selection",

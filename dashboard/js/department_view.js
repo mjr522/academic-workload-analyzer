@@ -829,11 +829,9 @@ function handleRosterFileUpload(file) {
                     if (policyTiers[rawTier]) {
                         tierKey = rawTier;
                     } else {
-                        const lowTier = rawTier.toLowerCase();
                         if (lowTier.includes('lab') && lowTier.includes('staff')) tierKey = 'Lab_Staff';
-                        else if (lowTier.includes('dir') || lowTier.includes('course')) tierKey = 'Course_Director';
-                        else if (lowTier.includes('head') || lowTier.includes('dh')) tierKey = 'Dept_Head';
-                        else if (lowTier.includes('div') || lowTier.includes('chief')) tierKey = 'Division_Chief';
+                        else if (lowTier.includes('dir') || lowTier.includes('course') || lowTier.includes('cd') || lowTier.includes('flyer') || lowTier.includes('306')) tierKey = 'Course_Director';
+                        else if (lowTier.includes('head') || lowTier.includes('dh') || lowTier.includes('div') || lowTier.includes('chief')) tierKey = 'Dept_Head';
                         else if (lowTier.includes('adjunct') || lowTier.includes('chair')) tierKey = 'Adjunct_Chair';
                         else if (lowTier.includes('moa') || lowTier.includes('courtesy')) tierKey = 'MOA_Courtesy';
                         else if (lowTier.includes('lab') && !lowTier.includes('head') && !lowTier.includes('dir')) tierKey = 'Lab_Staff';

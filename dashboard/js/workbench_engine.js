@@ -33,9 +33,8 @@ window.workbenchState = {
         sub10Threshold: 10,
         tiers: {
             'Line_Faculty': { name: 'Line Faculty', expected_sections: 3.0, teaching_pct: 75, admin_pct: 10, research_pct: 10, labops_pct: 5, is_custom: false },
-            'Course_Director': { name: 'Course Director', expected_sections: 2.0, teaching_pct: 50, admin_pct: 35, research_pct: 10, labops_pct: 5, is_custom: false },
+            'Course_Director': { name: 'CDs / 306 FTG Flyers', expected_sections: 2.0, teaching_pct: 50, admin_pct: 35, research_pct: 10, labops_pct: 5, is_custom: false },
             'Dept_Head': { name: 'Dept Head / Lab Dir', expected_sections: 1.0, teaching_pct: 25, admin_pct: 60, research_pct: 10, labops_pct: 5, is_custom: false },
-            'Division_Chief': { name: 'Division Chief', expected_sections: 1.0, teaching_pct: 25, admin_pct: 60, research_pct: 10, labops_pct: 5, is_custom: false },
             'Adjunct_Chair': { name: 'Adjunct / Chair', expected_sections: 0.5, teaching_pct: 15, admin_pct: 70, research_pct: 10, labops_pct: 5, is_custom: false },
             'MOA_Courtesy': { name: 'MOA / Courtesy', expected_sections: 0.0, teaching_pct: 0, admin_pct: 80, research_pct: 15, labops_pct: 5, is_custom: false },
             'Lab_Staff': { name: 'Lab Staff', expected_sections: 0.0, teaching_pct: 0, admin_pct: 0, research_pct: 0, labops_pct: 100, is_custom: false }
@@ -123,9 +122,8 @@ function initWorkbenchState(data) {
         const tStr = String(f.expected_tier || 'Line_Faculty').toLowerCase();
         let tierKey = 'Line_Faculty';
         if (tStr.includes('lab') && tStr.includes('staff')) tierKey = 'Lab_Staff';
-        else if (tStr.includes('dir') || tStr.includes('course')) tierKey = 'Course_Director';
-        else if (tStr.includes('head') || tStr.includes('dh')) tierKey = 'Dept_Head';
-        else if (tStr.includes('div') || tStr.includes('chief')) tierKey = 'Division_Chief';
+        else if (tStr.includes('dir') || tStr.includes('course') || tStr.includes('cd') || tStr.includes('flyer') || tStr.includes('306')) tierKey = 'Course_Director';
+        else if (tStr.includes('head') || tStr.includes('dh') || tStr.includes('div') || tStr.includes('chief')) tierKey = 'Dept_Head';
         else if (tStr.includes('adjunct') || tStr.includes('chair')) tierKey = 'Adjunct_Chair';
         else if (tStr.includes('moa') || tStr.includes('courtesy')) tierKey = 'MOA_Courtesy';
         else if (tStr.includes('lab') && !tStr.includes('head') && !tStr.includes('dir')) tierKey = 'Lab_Staff';
