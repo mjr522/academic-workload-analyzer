@@ -101,7 +101,7 @@ The platform maps all academic subjects and majors across USAFA's three academic
 | **SINE** | `ESCS` | Computer Science | `COMPSCI`, `CYBERSCI` |
 | **SINE** | `ESAN` | Aeronautics | `AEROENGR` |
 | **SINE** | `ESCE` | Civil & Environmental Engineering | `CIVENGR`, `CIVENG` |
-| **SINE** | `ESECE` | Electrical & Computer Engineering | `ECE` |
+| **SINE** | `ESEC` | Electrical & Computer Engineering | `ECE` |
 | **SINE** | `ESAS` | Astronautics | `ASTRENGR`, `SPACE` |
 | **SINE** | `ESIS` | SINE Core Engineering *(Interdisciplinary)* | `ENGR` *(Taught by cross-department faculty)* |
 | **SIBS** | `BSBI` | Biology | `BIOLOGY` |

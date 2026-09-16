@@ -1110,7 +1110,7 @@ function renderDepartmentCoursesTable(deptCode) {
     const allSecs = (data.active_sections || data.sections_audit || []);
     let sections = allSecs.filter(s =>
         s.department === deptCode ||
-        (deptCode === 'ESECE' && s.department === 'ESEC') ||
+        ((deptCode === 'ESEC' || deptCode === 'ESECE') && (s.department === 'ESEC' || s.department === 'ESECE')) ||
         (subjs && subjs.includes(s.subject))
     );
 

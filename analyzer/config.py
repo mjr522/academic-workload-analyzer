@@ -21,7 +21,7 @@ SCHOOL_METADATA: Dict[str, Dict[str, Any]] = {
         'short_name': 'Integrated Engineering (SINE)',
         'dean': 'Dean of Engineering',
         'icon': '⚙️',
-        'departments': ['ESME', 'ESCS', 'ESAN', 'ESCE', 'ESECE', 'ESAS', 'ESIS']
+        'departments': ['ESME', 'ESCS', 'ESAN', 'ESCE', 'ESEC', 'ESAS', 'ESIS']
     },
     'SIBS': {
         'code': 'SIBS',
@@ -50,7 +50,7 @@ DEFAULT_DEPARTMENT_MAPPINGS: Dict[str, List[str]] = {
     'ESCS': ['COMPSCI', 'CYBERSCI'],                      # Computer Science
     'ESAN': ['AEROENGR'],                                 # Aeronautics
     'ESCE': ['CIVENGR', 'CIVENG'],                        # Civil & Environmental Engineering
-    'ESECE': ['ECE'],                                     # Electrical & Computer Engineering
+    'ESEC': ['ECE'],                                      # Electrical & Computer Engineering
     'ESAS': ['ASTRENGR', 'SPACE'],                        # Astronautics
     'ESIS': ['ENGR'],                                     # SINE Core Engineering
 
@@ -79,7 +79,7 @@ DEPARTMENT_METADATA: Dict[str, Dict[str, str]] = {
     'ESCS': {'name': 'Computer Science', 'school': 'SINE', 'division': 'School of Integrated Engineering', 'chair_title': 'Department Head'},
     'ESAN': {'name': 'Aeronautics', 'school': 'SINE', 'division': 'School of Integrated Engineering', 'chair_title': 'Department Head'},
     'ESCE': {'name': 'Civil & Environmental Engineering', 'school': 'SINE', 'division': 'School of Integrated Engineering', 'chair_title': 'Department Head'},
-    'ESECE': {'name': 'Electrical & Computer Engineering', 'school': 'SINE', 'division': 'School of Integrated Engineering', 'chair_title': 'Department Head'},
+    'ESEC': {'name': 'Electrical & Computer Engineering', 'school': 'SINE', 'division': 'School of Integrated Engineering', 'chair_title': 'Department Head'},
     'ESAS': {'name': 'Astronautics', 'school': 'SINE', 'division': 'School of Integrated Engineering', 'chair_title': 'Department Head'},
     'ESIS': {'name': 'SINE Core Engineering', 'school': 'SINE', 'division': 'School of Integrated Engineering', 'chair_title': 'Dean / SINE Director'},
 
@@ -109,7 +109,7 @@ DEPARTMENT_MAJORS: Dict[str, List[str]] = {
     'ESCS': ['Computer Science', 'Cyber Science'],
     'ESAN': ['Aeronautical Engineering'],
     'ESCE': ['Civil Engineering'],
-    'ESECE': ['Electrical & Computer Engineering'],
+    'ESEC': ['Electrical & Computer Engineering'],
     'ESAS': ['Astronautical Engineering'],
     'ESIS': ['General Engineering'],
 
@@ -139,7 +139,7 @@ DEPARTMENT_ALIASES: Dict[str, str] = {
     'DFCS': 'ESCS', 'ESCS': 'ESCS',
     'DFAN': 'ESAN', 'ESAN': 'ESAN',
     'DFCE': 'ESCE', 'ESCE': 'ESCE',
-    'DFEC': 'ESECE', 'ESEC': 'ESECE', 'ESECE': 'ESECE',
+    'DFEC': 'ESEC', 'ESEC': 'ESEC', 'ESECE': 'ESEC',
     'DFAS': 'ESAS', 'ESAS': 'ESAS',
     'DFIS': 'ESIS', 'ESIS': 'ESIS',
 

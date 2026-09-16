@@ -373,7 +373,7 @@ function recomputeWorkbenchMetrics() {
         const subjs = dept.subjects_included || [];
         const deptSecs = activeSecs.filter(s =>
             s.department === dept.dept_code ||
-            (dept.dept_code === 'ESECE' && s.department === 'ESEC') ||
+            ((dept.dept_code === 'ESEC' || dept.dept_code === 'ESECE') && (s.department === 'ESEC' || s.department === 'ESECE')) ||
             (subjs && subjs.includes(s.subject))
         );
 
