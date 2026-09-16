@@ -7,6 +7,7 @@
  */
 
 window.workbenchState = {
+    meta: {},                 // Dataset metadata (terms, files, cadet counts)
     rawSections: [],          // Normalized course sections from JSON
     majors: {},               // Declared majors & pipeline counts
     advising: {},             // Advisor advisee loads
@@ -51,6 +52,7 @@ window.workbenchState = {
 function initWorkbenchState(data) {
     if (!data) return;
 
+    window.workbenchState.meta = JSON.parse(JSON.stringify(data.meta || {}));
     window.workbenchState.rawSections = data.sections_audit || data.sections || [];
     window.workbenchState.schools = JSON.parse(JSON.stringify(data.schools || []));
     window.workbenchState.departments = JSON.parse(JSON.stringify(data.departments || []));
@@ -717,21 +719,33 @@ function importPolicyConfigJSON(file) {
 
 /**
  * Exports full calibrated session state JSON (data + policy + department calibrations)
+ * Fully self-contained: bundles all raw course sections, metadata, calibrated rosters,
+ * consolidated faculty directory, policy settings, and computed KPIs into a single standalone file.
  */
 function exportFullSessionStateJSON() {
     const st = window.workbenchState;
+    const activeCalc = st.activeCalculatedData || {};
+
     const payload = {
         schema: 'usafa_workload_session_full_v1',
         saved_at: new Date().toISOString(),
         meta: {
-            description: "Complete calibrated academic workload session state"
+            ...(st.meta || {}),
+            description: "Complete self-contained calibrated academic workload session state",
+            is_calibrated: true,
+            saved_at: new Date().toISOString()
         },
         policy: st.policy,
         departmentRosters: st.departmentRosters,
         rawSections: st.rawSections,
+        sections_audit: st.rawSections,
         schools: st.schools,
-        departments: st.departments
+        departments: st.departments,
+        faculty_directory: activeCalc.faculty_directory || [],
+        institution_kpis: activeCalc.institution_kpis || null,
+        school_kpis: activeCalc.school_kpis || null
     };
+
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -739,4 +753,95 @@ function exportFullSessionStateJSON() {
     a.download = `usafa_workload_calibrated_session_${new Date().toISOString().slice(0,10)}.json`;
     a.click();
     URL.revokeObjectURL(url);
+}
+
+/**
+ * Loads a complete self-contained calibrated session state JSON file
+ * Restores raw timetable data, metadata, policies, and calibrated department rosters,
+ * recomputing all metrics in real time so the user or a colleague sees the exact same scenario.
+ */
+function loadFullSessionState(sessionData) {
+    if (!sessionData) return;
+
+    if (!window.workbenchState) {
+        window.workbenchState = { policy: {} };
+    }
+    const st = window.workbenchState;
+
+    // 1. Restore metadata & organizational hierarchy
+    st.meta = JSON.parse(JSON.stringify(sessionData.meta || {}));
+    st.schools = JSON.parse(JSON.stringify(sessionData.schools || []));
+    st.departments = JSON.parse(JSON.stringify(sessionData.departments || []));
+    st.rawSections = JSON.parse(JSON.stringify(sessionData.rawSections || sessionData.sections_audit || sessionData.sections || []));
+
+    // 2. Restore active policy configuration
+    if (sessionData.policy) {
+        st.policy = JSON.parse(JSON.stringify(sessionData.policy));
+        if (st.policy.excludeCapstones !== undefined) {
+            window.excludeCapstones = Boolean(st.policy.excludeCapstones);
+        }
+        if (st.policy.exclude499s !== undefined) {
+            window.exclude499s = Boolean(st.policy.exclude499s);
+        }
+    }
+
+    // 3. Restore calibrated department rosters
+    st.departmentRosters = JSON.parse(JSON.stringify(sessionData.departmentRosters || {}));
+
+    // 4. Populate synthetic root object for backward compatibility across all views
+    window.currentWorkloadData = {
+        meta: st.meta,
+        sections_audit: st.rawSections,
+        departments: st.departments,
+        schools: st.schools,
+        faculty_directory: sessionData.faculty_directory || [],
+        institution_kpis: sessionData.institution_kpis || null,
+        school_kpis: sessionData.school_kpis || null
+    };
+
+    // 5. Recompute all metrics live in the reactive engine
+    recomputeWorkbenchMetrics();
+
+    // 6. Synchronize UI toggles & dropdowns
+    if (typeof updateToggleButtonsUI === 'function') {
+        updateToggleButtonsUI();
+    }
+
+    const alertEl = document.getElementById('noDataAlert');
+    if (alertEl) alertEl.style.display = 'none';
+
+    const scopeSelect = document.getElementById('schoolScopeSelect');
+    if (scopeSelect) {
+        window.currentSchoolScope = scopeSelect.value || 'ALL';
+    }
+
+    if (typeof populateDeptDropdowns === 'function') {
+        populateDeptDropdowns(st.departments);
+    }
+
+    if (typeof initWhatIfSandbox === 'function') {
+        initWhatIfSandbox();
+    }
+
+    if (typeof renderAdminPolicyTab === 'function') {
+        renderAdminPolicyTab();
+    }
+
+    if (typeof refreshAllViews === 'function') {
+        refreshAllViews();
+    }
+
+    // 7. Update header badge
+    const banner = document.getElementById('dataLoadedBadge');
+    if (banner) {
+        const activeCalc = st.activeCalculatedData || {};
+        const kpis = activeCalc.institution_kpis || {};
+        const termStr = (st.meta && st.meta.terms && st.meta.terms.length > 0) ? st.meta.terms.join(', ') : 'Active';
+        const savedDate = sessionData.saved_at ? new Date(sessionData.saved_at).toLocaleDateString() : '';
+        banner.style.display = 'inline-flex';
+        banner.textContent = `Calibrated Session: ${(kpis.total_sections || st.rawSections.length || 0).toLocaleString()} Sections (${termStr}${savedDate ? `, Saved ${savedDate}` : ''})`;
+    }
+
+    console.log("Calibrated session state successfully loaded and recomputed:", sessionData);
+    alert(`Session state loaded successfully! Restored ${Object.keys(st.departmentRosters).length} calibrated department rosters, ${st.rawSections.length} sections, and active policy rules.`);
 }

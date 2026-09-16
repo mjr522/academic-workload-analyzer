@@ -19,9 +19,9 @@
             <div class="header-controls">
                 <span id="dataLoadedBadge" class="badge badge-dept" style="display:none; padding:6px 10px; font-size:12px;"></span>
                 <button class="privacy-toggle-btn" id="privacyToggleBtn">👁️ Names Visible (Internal View)</button>
-                <button class="btn" style="background:#0f766e; color:#fff; border:none; display:flex; align-items:center; gap:6px; padding:6px 12px; font-size:12px;" onclick="exportFullSessionStateJSON()" title="Download complete calibrated session state (policy + rosters + workload data) into a single JSON file">💾 Full Session State (.json)</button>
-                <label class="file-drop-area" title="Load a local workload_data.json file (100% private, runs entirely inside your browser)">
-                    📁 Load Local Data JSON
+                <button class="btn" style="background:#0f766e; color:#fff; border:none; display:flex; align-items:center; gap:6px; padding:6px 12px; font-size:12px;" onclick="exportFullSessionStateJSON()" title="Download complete self-contained calibrated session state (policy + rosters + workload data) into a single JSON file">💾 Full Session State (.json)</button>
+                <label class="file-drop-area" title="Load a local workload_data.json file or a saved Full Session State JSON (100% private, runs entirely inside your browser)">
+                    📁 Load Data / Session JSON
                     <input type="file" id="jsonFileInput" accept=".json" style="display:none;">
                 </label>
             </div>
@@ -35,7 +35,7 @@
                     <div>
                         <div style="color:var(--primary); font-size:15px; font-weight:700;">Ready to Load Academic Workload Data</div>
                         <div style="font-size:13px; color:var(--text-muted); margin-top:3px;">
-                            Click <strong>"📁 Load Local Data JSON"</strong> in the top header or drag & drop your <code>workload_data.json</code> file anywhere on this window.
+                            Click <strong>"📁 Load Data / Session JSON"</strong> in the top header or drag & drop your <code>workload_data.json</code> or calibrated session <code>.json</code> file anywhere on this window.
                             <span style="color:#0369a1; font-weight:600;">All data is processed 100% privately in your local browser memory.</span>
                         </div>
                     </div>

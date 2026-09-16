@@ -96,8 +96,19 @@ function processJsonFile(file) {
     reader.onload = (event) => {
         try {
             const data = JSON.parse(event.target.result);
-            if (!data.school_kpis && !data.institution_kpis && !data.modes) {
-                alert("Error: The selected JSON file does not appear to be a valid workload_data.json export.");
+
+            // 1. Auto-detect Full Calibrated Session State
+            if (data.schema === 'usafa_workload_session_full_v1' || (data.departmentRosters && (data.rawSections || data.sections_audit))) {
+                if (typeof loadFullSessionState === 'function') {
+                    loadFullSessionState(data);
+                    console.log("Successfully loaded calibrated session state:", data);
+                    return;
+                }
+            }
+
+            // 2. Auto-detect Raw Institutional Workload Dataset (Python ETL export)
+            if (!data.school_kpis && !data.institution_kpis && !data.modes && !data.sections_audit && !data.sections) {
+                alert("Error: The selected JSON file does not appear to be a valid workload_data.json export or calibrated session state (.json).");
                 return;
             }
             loadDataset(data);
