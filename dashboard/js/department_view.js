@@ -229,11 +229,14 @@ function renderDepartmentCapacityBalance(dept) {
 
     const capBal = dept.capacity_balance || {};
     const targetCap = capBal.standard_cap || (window.workbenchState?.policy?.standardSectionCap) || 24;
-    const targetSecs = (capBal.target_sections !== undefined ? Number(capBal.target_sections) : Number(dept.target_sections || 0));
+    const targetSecsFilled = (capBal.target_sections_filled !== undefined ? Number(capBal.target_sections_filled) : (dept.target_sections_filled !== undefined ? Number(dept.target_sections_filled) : Number(dept.target_sections || 0)));
+    const targetSecsAuth = (capBal.target_sections_authorized !== undefined ? Number(capBal.target_sections_authorized) : (dept.target_sections_authorized !== undefined ? Number(dept.target_sections_authorized) : targetSecsFilled));
+    const targetSecs = targetSecsFilled; // Current filled staffing capacity is the baseline for current balance
     const actualSecs = (capBal.actual_sections !== undefined ? Number(capBal.actual_sections) : Number(dept.total_sections || 0));
     const standardSecs = (capBal.standard_sections !== undefined ? Number(capBal.standard_sections) : Number(dept.standard_sections || 0));
     const compressionDelta = (capBal.compression_delta !== undefined ? Number(capBal.compression_delta) : Math.round((standardSecs - actualSecs) * 10) / 10);
     const staffingDelta = (capBal.staffing_delta !== undefined ? Number(capBal.staffing_delta) : Math.round((targetSecs - standardSecs) * 10) / 10);
+    const staffingDeltaAuth = (capBal.staffing_delta_authorized !== undefined ? Number(capBal.staffing_delta_authorized) : Math.round((targetSecsAuth - standardSecs) * 10) / 10);
 
     // Update Header Badge and Box Labels
     const badge = document.getElementById('deptCapBalanceBadge');
@@ -242,7 +245,20 @@ function renderDepartmentCapacityBalance(dept) {
     const labelCap = document.getElementById('deptCapLabelCap');
     if (labelCap) labelCap.textContent = `Cap ${targetCap}`;
 
-    setTextSafe('deptCapTargetSecs', `${targetSecs.toFixed(1)} secs`);
+    // Metric 1: Staffing Capacity (Target) - Dual Display (Filled / Auth)
+    const targetSubEl = document.getElementById('deptCapTargetSub');
+    if (Math.abs(targetSecsFilled - targetSecsAuth) > 0.05) {
+        setTextSafe('deptCapTargetSecs', `${targetSecsFilled.toFixed(1)} / ${targetSecsAuth.toFixed(1)} secs`);
+        if (targetSubEl) {
+            targetSubEl.innerHTML = `Current: <strong>${targetSecsFilled.toFixed(1)}s</strong> | Auth (Full): <strong>${targetSecsAuth.toFixed(1)}s</strong>`;
+        }
+    } else {
+        setTextSafe('deptCapTargetSecs', `${targetSecsFilled.toFixed(1)} secs`);
+        if (targetSubEl) {
+            targetSubEl.innerHTML = `What faculty <em>should</em> teach (${targetSecsFilled.toFixed(1)}s filled / authorized)`;
+        }
+    }
+
     setTextSafe('deptCapActualSecs', `${actualSecs.toFixed(1)} secs`);
     setTextSafe('deptCapStandardSecs', `${standardSecs.toFixed(1)} secs`);
 
@@ -311,12 +327,24 @@ function renderDepartmentCapacityBalance(dept) {
     // Narrative B: Staffing Balance
     if (staffingDelta < -1.0) {
         if (icon !== '🚨') icon = '🚨';
-        headline = "Structural Faculty Deficit: Authorizations Cannot Support Right-Sized Curriculum";
-        narratives.push(`<strong>Staffing Balance:</strong> Department authorized staffing capacity (<strong>${targetSecs.toFixed(1)} secs</strong>) is structurally deficient by <strong>${Math.abs(staffingDelta).toFixed(1)} sections</strong> compared to right-sized demand (<strong>${standardSecs.toFixed(1)} secs</strong>). The department relies on class compression or faculty over-teaching to deliver its mission.`);
+        headline = "Structural Faculty Deficit: Current Staffing Cannot Support Right-Sized Curriculum";
+        let staffText = `<strong>Staffing Balance:</strong> Current filled staffing capacity (<strong>${targetSecsFilled.toFixed(1)} secs</strong>) is structurally deficient by <strong>${Math.abs(staffingDelta).toFixed(1)} sections</strong> compared to right-sized demand (<strong>${standardSecs.toFixed(1)} secs</strong>). The department relies on class compression or faculty over-teaching to deliver its mission.`;
+        if (Math.abs(targetSecsFilled - targetSecsAuth) > 0.05) {
+            staffText += ` If vacant billets are filled, authorized capacity reaches <strong>${targetSecsAuth.toFixed(1)} secs</strong> (${staffingDeltaAuth >= 0 ? '+' : ''}${staffingDeltaAuth.toFixed(1)} secs vs demand).`;
+        }
+        narratives.push(staffText);
     } else if (staffingDelta > 2.0) {
-        narratives.push(`<strong>Staffing Balance:</strong> Authorized faculty capacity (<strong>${targetSecs.toFixed(1)} secs</strong>) comfortably covers right-sized demand (<strong>${standardSecs.toFixed(1)} secs</strong>) with a reserve capacity of <strong>+${staffingDelta.toFixed(1)} sections</strong>.`);
+        let staffText = `<strong>Staffing Balance:</strong> Current filled faculty capacity (<strong>${targetSecsFilled.toFixed(1)} secs</strong>) comfortably covers right-sized demand (<strong>${standardSecs.toFixed(1)} secs</strong>) with a reserve capacity of <strong>+${staffingDelta.toFixed(1)} sections</strong>.`;
+        if (Math.abs(targetSecsFilled - targetSecsAuth) > 0.05) {
+            staffText += ` Fully staffed authorized capacity is <strong>${targetSecsAuth.toFixed(1)} secs</strong> (+${staffingDeltaAuth.toFixed(1)} secs).`;
+        }
+        narratives.push(staffText);
     } else {
-        narratives.push(`<strong>Staffing Balance:</strong> Faculty staffing capacity (<strong>${targetSecs.toFixed(1)} secs</strong>) closely matches right-sized curricular demand (<strong>${standardSecs.toFixed(1)} secs</strong>, delta: ${staffingDelta >= 0 ? '+' : ''}${staffingDelta.toFixed(1)} secs).`);
+        let staffText = `<strong>Staffing Balance:</strong> Faculty staffing capacity (<strong>${targetSecsFilled.toFixed(1)} secs</strong>) closely matches right-sized curricular demand (<strong>${standardSecs.toFixed(1)} secs</strong>, delta: ${staffingDelta >= 0 ? '+' : ''}${staffingDelta.toFixed(1)} secs).`;
+        if (Math.abs(targetSecsFilled - targetSecsAuth) > 0.05) {
+            staffText += ` Fully staffed authorized capacity with vacant billets is <strong>${targetSecsAuth.toFixed(1)} secs</strong> (${staffingDeltaAuth >= 0 ? '+' : ''}${staffingDeltaAuth.toFixed(1)} secs).`;
+        }
+        narratives.push(staffText);
     }
 
     if (iconEl) iconEl.innerHTML = icon;
@@ -332,7 +360,11 @@ function renderDepartmentCapacityBalance(dept) {
     if (staffBadge) {
         const staffColor = staffingDelta < -1 ? '#b91c1c' : (staffingDelta > 2 ? '#15803d' : '#475569');
         const staffBg = staffingDelta < -1 ? '#fef2f2' : (staffingDelta > 2 ? '#f0fdf4' : '#f8fafc');
-        staffBadge.innerHTML = `<span class="badge" style="background:${staffBg}; color:${staffColor}; border:1px solid currentColor;">Staffing Balance: <strong>${staffingDelta >= 0 ? '+' : ''}${staffingDelta.toFixed(1)} secs</strong></span>`;
+        let staffBadgeText = `Staffing Balance: <strong>${staffingDelta >= 0 ? '+' : ''}${staffingDelta.toFixed(1)} secs</strong>`;
+        if (Math.abs(targetSecsFilled - targetSecsAuth) > 0.05) {
+            staffBadgeText = `Staffing Balance: <strong>${staffingDelta >= 0 ? '+' : ''}${staffingDelta.toFixed(1)}s (Auth: ${staffingDeltaAuth >= 0 ? '+' : ''}${staffingDeltaAuth.toFixed(1)}s)</strong>`;
+        }
+        staffBadge.innerHTML = `<span class="badge" style="background:${staffBg}; color:${staffColor}; border:1px solid currentColor;">${staffBadgeText}</span>`;
     }
 }
 
@@ -1323,6 +1355,9 @@ function renderSchoolDeptsTable(schoolDepts) {
         } else if (c === 'actual_sections') {
             valA = a.actual_sections !== undefined ? a.actual_sections : (a.total_sections || 0);
             valB = b.actual_sections !== undefined ? b.actual_sections : (b.total_sections || 0);
+        } else if (c === 'target_sections') {
+            valA = a.target_sections_filled !== undefined ? a.target_sections_filled : (a.target_sections || 0);
+            valB = b.target_sections_filled !== undefined ? b.target_sections_filled : (b.target_sections || 0);
         }
         if (typeof valA === 'number' || typeof valB === 'number') {
             valA = Number(valA) || 0;
@@ -1341,7 +1376,14 @@ function renderSchoolDeptsTable(schoolDepts) {
         const meanSecs = d.sections_per_inst_mean !== undefined ? Number(d.sections_per_inst_mean).toFixed(1) : '—';
         const sub10Display = `${d.sub10_sections_count || 0} (${d.sub10_percentage || 0}%)`;
 
-        const targetSec = d.target_sections !== undefined ? Number(d.target_sections).toFixed(1) : (d.capacity_balance?.target_sections !== undefined ? Number(d.capacity_balance.target_sections).toFixed(1) : '—');
+        const targetFilled = d.target_sections_filled !== undefined ? Number(d.target_sections_filled) : (d.target_sections !== undefined ? Number(d.target_sections) : (d.capacity_balance?.target_sections_filled !== undefined ? Number(d.capacity_balance.target_sections_filled) : (d.capacity_balance?.target_sections !== undefined ? Number(d.capacity_balance.target_sections) : 0)));
+        const targetAuth = d.target_sections_authorized !== undefined ? Number(d.target_sections_authorized) : (d.capacity_balance?.target_sections_authorized !== undefined ? Number(d.capacity_balance.target_sections_authorized) : targetFilled);
+
+        let targetDisplay = `<strong style="color:var(--primary);">${targetFilled.toFixed(1)}</strong>`;
+        if (Math.abs(targetFilled - targetAuth) > 0.05) {
+            targetDisplay = `<strong style="color:var(--primary);">${targetFilled.toFixed(1)}</strong> <span style="font-size:11px; color:var(--text-muted); font-weight:600;" title="Current Staffing: ${targetFilled.toFixed(1)}s | Fully Staffed: ${targetAuth.toFixed(1)}s">/ ${targetAuth.toFixed(1)}</span>`;
+        }
+
         const actualSec = d.actual_sections !== undefined ? Number(d.actual_sections).toFixed(1) : (d.total_sections !== undefined ? Number(d.total_sections).toFixed(1) : '0.0');
         const standardSec = d.standard_sections !== undefined ? Number(d.standard_sections).toFixed(1) : (d.capacity_balance?.standard_sections !== undefined ? Number(d.capacity_balance.standard_sections).toFixed(1) : '—');
         const compDelta = d.compression_delta !== undefined ? Number(d.compression_delta) : (d.capacity_balance?.compression_delta !== undefined ? Number(d.capacity_balance.compression_delta) : 0);
@@ -1358,7 +1400,7 @@ function renderSchoolDeptsTable(schoolDepts) {
             <td><strong style="color:var(--primary);">${d.dept_code}</strong></td>
             <td style="font-weight:600;">${d.dept_name}</td>
             <td class="num">${d.total_courses || 0}</td>
-            <td class="num"><strong style="color:var(--primary);">${targetSec}</strong></td>
+            <td class="num">${targetDisplay}</td>
             <td class="num"><strong>${actualSec}</strong></td>
             <td class="num"><strong style="color:#7c3aed;">${standardSec}</strong></td>
             <td class="num"><span style="${compStyle}">${compSign}</span></td>

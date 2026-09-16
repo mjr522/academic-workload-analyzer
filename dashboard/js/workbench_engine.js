@@ -461,10 +461,19 @@ function recomputeWorkbenchMetrics() {
 
         // 3-Way Instructional Capacity & Section Sizing Balance
         const targetCap = Number(policy.standardSectionCap) || 24;
-        const targetSections = Math.round(deptFac.reduce((acc, f) => {
+        
+        // Authorized / Fully Staffed Capacity (all billets in department, including vacant)
+        const targetSectionsAuth = Math.round(deptFac.reduce((acc, f) => {
             const exp = f.expected_sections !== undefined ? Number(f.expected_sections) : 0;
             return acc + exp;
         }, 0) * 10) / 10;
+
+        // Current Staffing Capacity (currently filled billets only, excluding vacant)
+        const targetSectionsFilled = Math.round(allFilledBillets.reduce((acc, f) => {
+            const exp = f.expected_sections !== undefined ? Number(f.expected_sections) : 0;
+            return acc + exp;
+        }, 0) * 10) / 10;
+
         const actualSections = dSections;
 
         // Right-Sized Standard Demand: group by unique course in deptSecs (respecting capstone/499 toggles)
@@ -492,23 +501,30 @@ function recomputeWorkbenchMetrics() {
         });
         standardSections = Math.round(standardSections * 10) / 10;
         const compressionDelta = Math.round((standardSections - actualSections) * 10) / 10;
-        const staffingDelta = Math.round((targetSections - standardSections) * 10) / 10;
+        const staffingDelta = Math.round((targetSectionsFilled - standardSections) * 10) / 10;
+        const staffingDeltaAuth = Math.round((targetSectionsAuth - standardSections) * 10) / 10;
 
         return {
             ...dept,
             total_sections: dSections,
             total_courses: dCourses,
-            target_sections: targetSections,
+            target_sections: targetSectionsFilled,
+            target_sections_filled: targetSectionsFilled,
+            target_sections_authorized: targetSectionsAuth,
             actual_sections: actualSections,
             standard_sections: standardSections,
             compression_delta: compressionDelta,
             staffing_delta: staffingDelta,
+            staffing_delta_authorized: staffingDeltaAuth,
             capacity_balance: {
-                target_sections: targetSections,
+                target_sections: targetSectionsFilled,
+                target_sections_filled: targetSectionsFilled,
+                target_sections_authorized: targetSectionsAuth,
                 actual_sections: actualSections,
                 standard_sections: standardSections,
                 compression_delta: compressionDelta,
                 staffing_delta: staffingDelta,
+                staffing_delta_authorized: staffingDeltaAuth,
                 standard_cap: targetCap
             },
             total_cadet_seats: dSeats,
@@ -577,25 +593,33 @@ function recomputeWorkbenchMetrics() {
             }
         });
 
-        const schTargetSecs = Math.round(schDepts.reduce((acc, d) => acc + (d.target_sections || 0), 0) * 10) / 10;
+        const schTargetSecs = Math.round(schDepts.reduce((acc, d) => acc + (d.target_sections_filled !== undefined ? d.target_sections_filled : (d.target_sections || 0)), 0) * 10) / 10;
+        const schTargetSecsAuth = Math.round(schDepts.reduce((acc, d) => acc + (d.target_sections_authorized !== undefined ? d.target_sections_authorized : (d.target_sections || 0)), 0) * 10) / 10;
         const schStandardSecs = Math.round(schDepts.reduce((acc, d) => acc + (d.standard_sections || 0), 0) * 10) / 10;
         const schCompressionDelta = Math.round((schStandardSecs - schSecs) * 10) / 10;
         const schStaffingDelta = Math.round((schTargetSecs - schStandardSecs) * 10) / 10;
+        const schStaffingDeltaAuth = Math.round((schTargetSecsAuth - schStandardSecs) * 10) / 10;
 
         return {
             ...sch,
             total_sections: schSecs,
             target_sections: schTargetSecs,
+            target_sections_filled: schTargetSecs,
+            target_sections_authorized: schTargetSecsAuth,
             actual_sections: schSecs,
             standard_sections: schStandardSecs,
             compression_delta: schCompressionDelta,
             staffing_delta: schStaffingDelta,
+            staffing_delta_authorized: schStaffingDeltaAuth,
             capacity_balance: {
                 target_sections: schTargetSecs,
+                target_sections_filled: schTargetSecs,
+                target_sections_authorized: schTargetSecsAuth,
                 actual_sections: schSecs,
                 standard_sections: schStandardSecs,
                 compression_delta: schCompressionDelta,
                 staffing_delta: schStaffingDelta,
+                staffing_delta_authorized: schStaffingDeltaAuth,
                 standard_cap: Number(policy.standardSectionCap) || 24
             },
             total_cadet_seats: schSeats,
@@ -626,24 +650,32 @@ function recomputeWorkbenchMetrics() {
     const teachingFacultyTotal = consolidatedFaculty.filter(f => f.weighted_sections > 0).length;
     const allBilletsTotal = consolidatedFaculty.length;
 
-    const instTargetSecs = Math.round(computedDepartments.reduce((acc, d) => acc + (d.target_sections || 0), 0) * 10) / 10;
+    const instTargetSecs = Math.round(computedDepartments.reduce((acc, d) => acc + (d.target_sections_filled !== undefined ? d.target_sections_filled : (d.target_sections || 0)), 0) * 10) / 10;
+    const instTargetSecsAuth = Math.round(computedDepartments.reduce((acc, d) => acc + (d.target_sections_authorized !== undefined ? d.target_sections_authorized : (d.target_sections || 0)), 0) * 10) / 10;
     const instStandardSecs = Math.round(computedDepartments.reduce((acc, d) => acc + (d.standard_sections || 0), 0) * 10) / 10;
     const instCompressionDelta = Math.round((instStandardSecs - instTotSecs) * 10) / 10;
     const instStaffingDelta = Math.round((instTargetSecs - instStandardSecs) * 10) / 10;
+    const instStaffingDeltaAuth = Math.round((instTargetSecsAuth - instStandardSecs) * 10) / 10;
 
     const instKPIs = {
         total_sections: instTotSecs,
         target_sections: instTargetSecs,
+        target_sections_filled: instTargetSecs,
+        target_sections_authorized: instTargetSecsAuth,
         actual_sections: instTotSecs,
         standard_sections: instStandardSecs,
         compression_delta: instCompressionDelta,
         staffing_delta: instStaffingDelta,
+        staffing_delta_authorized: instStaffingDeltaAuth,
         capacity_balance: {
             target_sections: instTargetSecs,
+            target_sections_filled: instTargetSecs,
+            target_sections_authorized: instTargetSecsAuth,
             actual_sections: instTotSecs,
             standard_sections: instStandardSecs,
             compression_delta: instCompressionDelta,
             staffing_delta: instStaffingDelta,
+            staffing_delta_authorized: instStaffingDeltaAuth,
             standard_cap: Number(policy.standardSectionCap) || 24
         },
         total_cadet_seats: instTotSeats,

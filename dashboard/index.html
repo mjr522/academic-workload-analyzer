@@ -407,7 +407,7 @@
                             1. Staffing Capacity (Target)
                         </div>
                         <div id="deptCapTargetSecs" style="font-size:24px; font-weight:800; color:var(--primary); line-height:1.2;">-</div>
-                        <div style="font-size:11.5px; color:var(--text-muted); margin-top:4px;">
+                        <div id="deptCapTargetSub" style="font-size:11.5px; color:var(--text-muted); margin-top:4px;">
                             What faculty <em>should</em> teach (policy tiers)
                         </div>
                     </div>
@@ -621,7 +621,7 @@
                                     <th class="sortable" onclick="sortSchoolDeptsTable('dept_code')">Dept <span class="sort-icon" id="th-schooldepts-dept_code">↕</span></th>
                                     <th class="sortable" onclick="sortSchoolDeptsTable('dept_name')">Department Name <span class="sort-icon" id="th-schooldepts-dept_name">↕</span></th>
                                     <th class="num sortable" onclick="sortSchoolDeptsTable('total_courses')">Courses <span class="sort-icon" id="th-schooldepts-total_courses">↕</span></th>
-                                    <th class="num sortable" onclick="sortSchoolDeptsTable('target_sections')" title="Staffing Capacity: Total instructional sections expected based on faculty role tiers">Target Secs <span class="sort-icon" id="th-schooldepts-target_sections">↕</span></th>
+                                    <th class="num sortable" onclick="sortSchoolDeptsTable('target_sections')" title="Staffing Capacity: Current Staffing (Filled Billets) / Fully Staffed (Authorized Billets) based on faculty role tiers">Target Secs <span style="font-size:10px; font-weight:normal; display:block; color:var(--text-muted);">(Filled / Auth)</span> <span class="sort-icon" id="th-schooldepts-target_sections">↕</span></th>
                                     <th class="num sortable" onclick="sortSchoolDeptsTable('actual_sections')" title="Actual Scheduled: Total weighted sections currently taught">Actual Secs <span class="sort-icon" id="th-schooldepts-actual_sections">↕</span></th>
                                     <th class="num sortable" onclick="sortSchoolDeptsTable('standard_sections')" title="Right-Sized Demand: Sections required if capped at standard policy size"><span id="th-schooldepts-cap-label">Cap 24 Demand</span> <span class="sort-icon" id="th-schooldepts-standard_sections">↕</span></th>
                                     <th class="num sortable" onclick="sortSchoolDeptsTable('compression_delta')" title="Classroom Compression Pressure: Standard Demand minus Actual Scheduled (+ = oversized sections)">Sizing Pressure <span class="sort-icon" id="th-schooldepts-compression_delta">↕</span></th>
