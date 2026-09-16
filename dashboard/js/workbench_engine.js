@@ -877,3 +877,108 @@ function loadFullSessionState(sessionData) {
     console.log("Calibrated session state successfully loaded and recomputed:", sessionData);
     alert(`Session state loaded successfully! Restored ${Object.keys(st.departmentRosters).length} calibrated department rosters, ${st.rawSections.length} sections, and active policy rules.`);
 }
+
+/**
+ * Reassign instructors for a specific course section by class_nbr or composite key
+ * @param {string|number} classNbr - The unique class section number
+ * @param {Array<string>} newInstructors - List of instructor names assigned to this section
+ */
+function assignSectionInstructors(classNbr, newInstructors) {
+    const st = window.workbenchState;
+    if (!st || !st.rawSections) return false;
+
+    const sStr = String(classNbr);
+    const sec = st.rawSections.find(s => String(s.class_nbr) === sStr || `${s.term}_${s.subject}_${s.course_nbr}_${s.section}` === sStr);
+    if (!sec) return false;
+
+    // Track original instructors for 1-click revert
+    if (!sec._original_instructors) {
+        sec._original_instructors = (sec.instructors && Array.isArray(sec.instructors)) ? [...sec.instructors] : (sec.instructor ? [sec.instructor] : []);
+    }
+
+    const cleaned = (newInstructors || [])
+        .map(x => String(x || '').trim())
+        .filter(Boolean);
+
+    sec.instructors = cleaned;
+    sec.instructor = cleaned.length > 0 ? cleaned[0] : 'Staff';
+    sec.is_instructor_modified = true;
+
+    // Synchronize to currentWorkloadData if separate reference
+    if (window.currentWorkloadData) {
+        const auditList = window.currentWorkloadData.sections_audit || window.currentWorkloadData.sections || [];
+        const auditSec = auditList.find(s => String(s.class_nbr) === sStr || `${s.term}_${s.subject}_${s.course_nbr}_${s.section}` === sStr);
+        if (auditSec && auditSec !== sec) {
+            if (!auditSec._original_instructors) {
+                auditSec._original_instructors = (auditSec.instructors && Array.isArray(auditSec.instructors)) ? [...auditSec.instructors] : (auditSec.instructor ? [auditSec.instructor] : []);
+            }
+            auditSec.instructors = [...cleaned];
+            auditSec.instructor = sec.instructor;
+            auditSec.is_instructor_modified = true;
+        }
+    }
+
+    // Auto-enroll newly assigned instructors into department roster if not present anywhere
+    cleaned.forEach(instName => {
+        if (!instName || instName.toLowerCase() === 'staff' || instName.toLowerCase() === 'unassigned') return;
+        let found = false;
+        Object.values(st.departmentRosters || {}).forEach(r => {
+            if (r.some(f => f.instructor === instName)) found = true;
+        });
+
+        if (!found) {
+            const deptCode = sec.department || 'OTHER';
+            if (!st.departmentRosters[deptCode]) st.departmentRosters[deptCode] = [];
+            st.departmentRosters[deptCode].push({
+                instructor: instName,
+                name: instName,
+                primary_dept: deptCode,
+                school_code: sec.school_code || 'OTHER',
+                billet_type: 'Military',
+                occupancy_status: 'Filled',
+                tier_key: 'Line_Faculty',
+                expected_sections: 3.0,
+                teaching_pct: 75,
+                admin_pct: 10,
+                research_pct: 10,
+                labops_pct: 5,
+                advisees_count: 0,
+                notes: 'Auto-added from section assignment edit',
+                is_manual: true
+            });
+        }
+    });
+
+    recomputeWorkbenchMetrics();
+    return true;
+}
+
+/**
+ * Revert a section's assigned instructors to baseline imported values
+ * @param {string|number} classNbr
+ */
+function revertSectionInstructors(classNbr) {
+    const st = window.workbenchState;
+    if (!st || !st.rawSections) return false;
+
+    const sStr = String(classNbr);
+    const sec = st.rawSections.find(s => String(s.class_nbr) === sStr || `${s.term}_${s.subject}_${s.course_nbr}_${s.section}` === sStr);
+    if (!sec || !sec._original_instructors) return false;
+
+    sec.instructors = [...sec._original_instructors];
+    sec.instructor = sec.instructors.length > 0 ? sec.instructors[0] : 'Staff';
+    delete sec.is_instructor_modified;
+
+    if (window.currentWorkloadData) {
+        const auditList = window.currentWorkloadData.sections_audit || window.currentWorkloadData.sections || [];
+        const auditSec = auditList.find(s => String(s.class_nbr) === sStr || `${s.term}_${s.subject}_${s.course_nbr}_${s.section}` === sStr);
+        if (auditSec) {
+            auditSec.instructors = [...sec.instructors];
+            auditSec.instructor = sec.instructor;
+            delete auditSec.is_instructor_modified;
+        }
+    }
+
+    recomputeWorkbenchMetrics();
+    return true;
+}

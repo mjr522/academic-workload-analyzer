@@ -1212,6 +1212,11 @@ function renderDepartmentCoursesTable(deptCode) {
         if (s.credit_type === 'Quarter Credit' || s.section_weight === 0.25) {
             badges.push('<span class="badge" style="background:#f3e8ff; color:#7e22ce; font-weight:700;" title="Quarter Credit Course (0.25x Section / 0.25x Cadet Contact)">¼ Credit</span>');
         }
+        const classNbr = s.class_nbr || `${s.term}_${s.subject}_${s.course_nbr}_${s.section}`;
+        const isModified = Boolean(s.is_instructor_modified);
+        const modifiedBadge = isModified ? `<span class="badge" style="background:#e0e7ff; color:#3730a3; font-size:10px; font-weight:700; border:1px solid #c7d2fe; margin-left:4px;" title="Instructors manually modified in this session">Edited</span>` : '';
+        const editBtn = `<button type="button" class="btn btn-sm" onclick="openEditSectionInstructorsModal('${classNbr}')" style="padding:1px 6px; font-size:10.5px; margin-left:6px; border-radius:4px; border:1px solid var(--border); background:#fff; cursor:pointer;" title="Change assigned instructors for this section">✏️ Edit</button>`;
+
         const flagsHtml = badges.length > 0 ? badges.join(' ') : '<span style="color:#cbd5e1;">—</span>';
 
         tr.innerHTML = `
@@ -1221,7 +1226,7 @@ function renderDepartmentCoursesTable(deptCode) {
             <td style="font-size: 12px; color: var(--text-muted);">${s.term || '—'}</td>
             <td class="num" style="${countStyle}">${cadetCount}</td>
             <td class="num">${s.credit_units !== undefined ? Number(s.credit_units).toFixed(1) : '—'}</td>
-            <td style="font-size: 12px;">${instHtml}</td>
+            <td style="font-size: 12px;"><div style="display:inline-flex; align-items:center; flex-wrap:wrap; gap:4px;">${instHtml} ${editBtn} ${modifiedBadge}</div></td>
             <td>${flagsHtml}</td>
         `;
         tbody.appendChild(tr);
@@ -1686,6 +1691,11 @@ function renderSchoolCoursesTable(schoolCode) {
         if (s.is_499) badges.push('<span class="badge" style="background:#e0f2fe; color:#0369a1; font-weight:700;" title="Independent Study (499)">499 Ind Study</span>');
         if (s.credit_type === 'Half Credit' || s.section_weight === 0.5) badges.push('<span class="badge" style="background:#fef3c7; color:#b45309; font-weight:700;">½ Credit</span>');
         if (s.credit_type === 'Quarter Credit' || s.section_weight === 0.25) badges.push('<span class="badge" style="background:#f3e8ff; color:#7e22ce; font-weight:700;">¼ Credit</span>');
+        const classNbr = s.class_nbr || `${s.term}_${s.subject}_${s.course_nbr}_${s.section}`;
+        const isModified = Boolean(s.is_instructor_modified);
+        const modifiedBadge = isModified ? `<span class="badge" style="background:#e0e7ff; color:#3730a3; font-size:10px; font-weight:700; border:1px solid #c7d2fe; margin-left:4px;" title="Instructors manually modified in this session">Edited</span>` : '';
+        const editBtn = `<button type="button" class="btn btn-sm" onclick="openEditSectionInstructorsModal('${classNbr}')" style="padding:1px 6px; font-size:10.5px; margin-left:6px; border-radius:4px; border:1px solid var(--border); background:#fff; cursor:pointer;" title="Change assigned instructors for this section">✏️ Edit</button>`;
+
         const flagsHtml = badges.length > 0 ? badges.join(' ') : '<span style="color:#cbd5e1;">—</span>';
 
         tr.innerHTML = `
@@ -1696,7 +1706,7 @@ function renderSchoolCoursesTable(schoolCode) {
             <td style="font-size: 12px; color: var(--text-muted);">${s.term || '—'}</td>
             <td class="num" style="${countStyle}">${cadetCount}</td>
             <td class="num">${s.credit_units !== undefined ? Number(s.credit_units).toFixed(1) : '—'}</td>
-            <td style="font-size: 12px;">${instHtml}</td>
+            <td style="font-size: 12px;"><div style="display:inline-flex; align-items:center; flex-wrap:wrap; gap:4px;">${instHtml} ${editBtn} ${modifiedBadge}</div></td>
             <td>${flagsHtml}</td>
         `;
         tbody.appendChild(tr);
@@ -1715,5 +1725,190 @@ function sortSchoolCoursesTable(col) {
 
 function filterSchoolCoursesTable() {
     renderSchoolCoursesTable();
+}
+
+// =========================================================================
+// SECTION INSTRUCTOR REASSIGNMENT MODAL CONTROLLERS
+// =========================================================================
+
+let currentEditingSectionClassNbr = null;
+let currentEditingInstructorsStage = [];
+
+function openEditSectionInstructorsModal(classNbr) {
+    const st = window.workbenchState;
+    if (!st || !st.rawSections) return;
+
+    const sStr = String(classNbr);
+    const sec = st.rawSections.find(s => String(s.class_nbr) === sStr || `${s.term}_${s.subject}_${s.course_nbr}_${s.section}` === sStr);
+    if (!sec) return;
+
+    currentEditingSectionClassNbr = classNbr;
+    currentEditingInstructorsStage = (sec.instructors && Array.isArray(sec.instructors)) ? [...sec.instructors] : (sec.instructor ? [sec.instructor] : []);
+
+    // Section Header Information
+    const cName = `${sec.subject || ''} ${sec.course_nbr || ''}`.trim();
+    const cadetCount = sec.cadet_count !== undefined ? sec.cadet_count : (sec.cadets || 0);
+    const headerEl = document.getElementById('modalSectionHeader');
+    if (headerEl) {
+        headerEl.innerHTML = `
+            <div style="font-size:15px; font-weight:700; color:var(--primary); margin-bottom:4px;">
+                ${cName} &mdash; ${sec.title || 'Course Section'}
+            </div>
+            <div style="display:flex; flex-wrap:wrap; gap:10px; font-size:12px; color:var(--text-muted);">
+                <span>Section: <strong>${sec.section || '—'}</strong></span>
+                <span>CRN / Class #: <strong>${sec.class_nbr || '—'}</strong></span>
+                <span>Term: <strong>${sec.term || '—'}</strong></span>
+                <span>Department: <span class="badge badge-dept">${sec.department || '—'}</span></span>
+                <span>Enrolled: <strong>${cadetCount} cadets</strong></span>
+            </div>
+        `;
+    }
+
+    // Populate Add Instructor Dropdown
+    const selectEl = document.getElementById('modalAddInstructorSelect');
+    if (selectEl) {
+        selectEl.innerHTML = '<option value="">-- Choose from Faculty Directory --</option>';
+
+        const activeDeptCode = sec.department || currentDeptFacultyCode;
+        const deptRoster = (st.departmentRosters && st.departmentRosters[activeDeptCode]) || [];
+        const deptFacNames = deptRoster.map(f => f.instructor).filter(Boolean);
+
+        if (deptFacNames.length > 0) {
+            const grpDept = document.createElement('optgroup');
+            grpDept.label = `${activeDeptCode} Department Faculty (${deptFacNames.length})`;
+            deptFacNames.slice().sort().forEach(name => {
+                const opt = document.createElement('option');
+                opt.value = name;
+                opt.textContent = name;
+                grpDept.appendChild(opt);
+            });
+            selectEl.appendChild(grpDept);
+        }
+
+        // Other departments in institution
+        const otherFac = [];
+        Object.entries(st.departmentRosters || {}).forEach(([dCode, rList]) => {
+            if (dCode !== activeDeptCode) {
+                rList.forEach(f => {
+                    if (f.instructor && !deptFacNames.includes(f.instructor)) {
+                        otherFac.push({ name: f.instructor, dept: dCode });
+                    }
+                });
+            }
+        });
+
+        if (otherFac.length > 0) {
+            const grpOther = document.createElement('optgroup');
+            grpOther.label = `Other USAFA Departments (${otherFac.length})`;
+            otherFac.sort((a, b) => a.name.localeCompare(b.name)).forEach(item => {
+                const opt = document.createElement('option');
+                opt.value = item.name;
+                opt.textContent = `${item.name} (${item.dept})`;
+                grpOther.appendChild(opt);
+            });
+            selectEl.appendChild(grpOther);
+        }
+    }
+
+    // Custom text input
+    const inputEl = document.getElementById('modalCustomInstructorInput');
+    if (inputEl) inputEl.value = '';
+
+    // Revert button visibility
+    const revertBtn = document.getElementById('modalRevertInstructorsBtn');
+    if (revertBtn) {
+        if (sec.is_instructor_modified || sec._original_instructors) {
+            const origNames = (sec._original_instructors || []).join(', ') || 'Staff';
+            revertBtn.style.display = 'inline-block';
+            revertBtn.title = `Revert back to original: ${origNames}`;
+            revertBtn.textContent = `↺ Revert to Original (${origNames})`;
+        } else {
+            revertBtn.style.display = 'none';
+        }
+    }
+
+    renderModalCurrentInstructorsStage();
+
+    const modal = document.getElementById('editSectionInstructorsModal');
+    if (modal) modal.style.display = 'flex';
+}
+
+function closeEditSectionInstructorsModal(e) {
+    if (!e || e.target === document.getElementById('editSectionInstructorsModal') || (e.target && e.target.classList && e.target.classList.contains('modal-close'))) {
+        const modal = document.getElementById('editSectionInstructorsModal');
+        if (modal) modal.style.display = 'none';
+        currentEditingSectionClassNbr = null;
+        currentEditingInstructorsStage = [];
+    }
+}
+
+function renderModalCurrentInstructorsStage() {
+    const listEl = document.getElementById('modalCurrentInstructorsList');
+    if (!listEl) return;
+    listEl.innerHTML = '';
+
+    if (!currentEditingInstructorsStage || currentEditingInstructorsStage.length === 0) {
+        listEl.innerHTML = '<span style="color:#94a3b8; font-style:italic; font-size:12px;">No instructors currently assigned (Unassigned / Staff)</span>';
+        return;
+    }
+
+    currentEditingInstructorsStage.forEach((name, idx) => {
+        const chip = document.createElement('div');
+        chip.style.cssText = 'display:inline-flex; align-items:center; background:#e0f2fe; color:#0369a1; border:1px solid #bae6fd; border-radius:16px; padding:3px 10px; font-size:12px; font-weight:600;';
+        chip.innerHTML = `
+            <span>${name}</span>
+            <button type="button" onclick="removeInstructorFromStage(${idx})" title="Remove ${name}" style="background:none; border:none; color:#0369a1; margin-left:6px; font-size:14px; line-height:1; cursor:pointer; font-weight:bold; padding:0 2px;">&times;</button>
+        `;
+        listEl.appendChild(chip);
+    });
+}
+
+function removeInstructorFromStage(idx) {
+    currentEditingInstructorsStage.splice(idx, 1);
+    renderModalCurrentInstructorsStage();
+}
+
+function addSelectedInstructorToStage() {
+    const sel = document.getElementById('modalAddInstructorSelect');
+    if (!sel || !sel.value) return;
+    const name = sel.value.trim();
+    if (name && !currentEditingInstructorsStage.includes(name)) {
+        currentEditingInstructorsStage.push(name);
+        renderModalCurrentInstructorsStage();
+    }
+    sel.value = '';
+}
+
+function addCustomInstructorToStage() {
+    const inp = document.getElementById('modalCustomInstructorInput');
+    if (!inp) return;
+    const name = inp.value.trim();
+    if (name && !currentEditingInstructorsStage.includes(name)) {
+        currentEditingInstructorsStage.push(name);
+        renderModalCurrentInstructorsStage();
+    }
+    inp.value = '';
+}
+
+function saveSectionInstructorsModal() {
+    if (!currentEditingSectionClassNbr) return;
+    const ok = assignSectionInstructors(currentEditingSectionClassNbr, currentEditingInstructorsStage);
+    if (ok) {
+        const modal = document.getElementById('editSectionInstructorsModal');
+        if (modal) modal.style.display = 'none';
+        currentEditingSectionClassNbr = null;
+        currentEditingInstructorsStage = [];
+    }
+}
+
+function revertSectionInstructorsModal() {
+    if (!currentEditingSectionClassNbr) return;
+    const ok = revertSectionInstructors(currentEditingSectionClassNbr);
+    if (ok) {
+        const modal = document.getElementById('editSectionInstructorsModal');
+        if (modal) modal.style.display = 'none';
+        currentEditingSectionClassNbr = null;
+        currentEditingInstructorsStage = [];
+    }
 }
 
